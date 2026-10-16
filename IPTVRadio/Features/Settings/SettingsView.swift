@@ -300,6 +300,14 @@ struct SettingsView: View {
                 settingsNavigationLabel("Privacy & authorization")
             }
             .aetherSettingsRow()
+            settingsDivider
+            NavigationLink {
+                PlaybackLicensesView()
+                    .toolbar(.visible, for: .navigationBar)
+            } label: {
+                settingsNavigationLabel("Playback acknowledgements")
+            }
+            .aetherSettingsRow()
             settingsFooter("No analytics, no tracking. Credentials are stored only in the Keychain and never logged.")
         }
     }

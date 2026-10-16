@@ -81,7 +81,6 @@ final class SettingsStore: ObservableObject {
     @Published var bluetoothOutputControl: Bool {
         didSet { defaults.set(bluetoothOutputControl, forKey: Keys.bluetoothOutputControl) }
     }
-    /// Playback engine used for streams (takes effect after an app restart).
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         cellularAllowed = defaults.object(forKey: Keys.cellularAllowed) as? Bool ?? true

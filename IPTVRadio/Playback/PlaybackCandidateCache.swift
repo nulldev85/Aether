@@ -13,7 +13,9 @@ import Foundation
 /// else.
 final class PlaybackCandidateCache {
     private let fileStore: JSONFileStore
-    private let filename = "playback-candidates.json"
+    // VLC's previous winner must not keep a station on a compromised HLS
+    // format when the new engine can decode its original TS/audio endpoint.
+    private let filename = "playback-candidates-aether-7.json"
     private let lock = NSLock()
     private var winners: [String: String]
 

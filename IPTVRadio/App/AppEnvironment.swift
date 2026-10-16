@@ -78,7 +78,7 @@ final class AppEnvironment: ObservableObject {
         let channelKeys = ChannelKeyResolver(overrides: songLookupKeys)
 
         let nowPlaying = NowPlayingManager()
-        let audioPlayer: AudioPlayerControlling = uitestMode ? MockAudioPlayer() : VLCPlayerAdapter()
+        let audioPlayer: AudioPlayerControlling = uitestMode ? MockAudioPlayer() : AetherPlayerAdapter()
         playback = PlaybackEngine(
             player: audioPlayer,
             settings: settings,

@@ -8,6 +8,7 @@ import Foundation
 /// fallback, stall confirmation, reconnect backoff — be exercised without a
 /// network or a device.
 protocol AudioPlayerControlling: AnyObject {
+    var engineName: String { get }
     var onReady: (() -> Void)? { get set }
     var onFailure: ((String) -> Void)? { get set }
     var onEnded: (() -> Void)? { get set }
@@ -38,6 +39,7 @@ protocol AudioPlayerControlling: AnyObject {
 }
 
 extension AudioPlayerControlling {
+    var engineName: String { "Mock audio player" }
     var startupGracePeriod: TimeInterval { 0 }
     var playbackProgress: Double? { nil }
 }

@@ -1,9 +1,8 @@
 name: iOS Build and Delivery
 
 # Builds, tests, and (when signing secrets are configured) exports a signed IPA.
-# Without signing secrets the workflow still compiles, tests, and uploads an
-# UNSIGNED SIMULATOR build for diagnostics. An unsigned simulator build cannot
-# be installed on a physical iPhone.
+# Always exports an unsigned iPhone IPA for re-signing, plus a simulator
+# diagnostic artifact. Signing secrets additionally enable a signed export.
 
 on:
   push:
@@ -65,6 +64,13 @@ jobs:
         run: |
           xcodebuild -version
           xcrun simctl list devices available | grep "$SIMULATOR_NAME" || true
+
+      - name: Generate synthetic AAC transport-stream fixture
+        run: |
+          if ! command -v ffmpeg >/dev/null; then
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install ffmpeg
+          fi
+          bash scripts/make-audio-fixture.sh
 
       - name: Run unit and UI tests
         run: |
@@ -207,6 +213,7 @@ jobs:
           DEVICE_APP="build/device/Build/Products/Release-iphoneos/IPTVRadio.app"
           test -d "$DEVICE_APP" || { echo "::error::Device app not found at $DEVICE_APP"; exit 1; }
           echo "Verified device app exists at $DEVICE_APP"
+          python3 scripts/check-aether-build.py "$DEVICE_APP"
 
           mkdir -p build/ipa-staging/Payload
           cp -R "$DEVICE_APP" build/ipa-staging/Payload/IPTVRadio.app

@@ -17,12 +17,18 @@ struct StreamDiagnosticsView: View {
             if let diagnostics = playback.streamDiagnostics {
                 Section("Active stream") {
                     LabeledContent("Station", value: diagnostics.stationName)
+                    if let engine = diagnostics.playbackEngine {
+                        LabeledContent("Playback engine", value: engine)
+                    }
+                    if let route = diagnostics.playbackRoute {
+                        LabeledContent("Playback path", value: route)
+                    }
                     LabeledContent(
                         "Format",
                         value: "\(formatName(diagnostics.streamType)), option \(diagnostics.formatIndex) of \(diagnostics.formatCount)"
                     )
                     if let buffer = diagnostics.buffer {
-                        LabeledContent("Network buffer", value: bufferValue(buffer))
+                        LabeledContent(diagnostics.bufferIsEstimated ? "Buffer target (estimated)" : "Buffer target", value: bufferValue(buffer))
                     }
                     LabeledContent("Indicated bitrate", value: bitrate(diagnostics.indicatedBitrate))
                     LabeledContent("Observed bitrate (download rate)", value: bitrate(diagnostics.observedBitrate))

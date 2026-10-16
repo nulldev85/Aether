@@ -4,10 +4,8 @@ import Foundation
 /// channel metadata.
 ///
 /// IPTV relays often carry no ICY title, and the panel's EPG may list shows
-/// rather than songs. ShazamKit can match decoded audio samples, but the VLC
-/// playback path does not expose a passive PCM tap. Capturing audio for it
-/// would require a separate pipeline, so this source consults the broadcaster
-/// without changing playback.
+/// rather than songs. This source consults the broadcaster without capturing
+/// audio or changing playback. Recognition through a PCM tap is not enabled.
 ///
 /// SECURITY: talks only to SiriusXM's host and sends only the station's public
 /// name. Provider credentials and stream URLs are never involved, and nothing

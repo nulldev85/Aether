@@ -28,6 +28,17 @@ final class PlaybackCandidateCacheTests: XCTestCase {
         XCTAssertNil(cache.successfulURL(for: URL(string: "https://host.example/unknown.m3u8")!))
     }
 
+    func testEngineSwapDoesNotReuseThePreviousVLCFallback() {
+        let (_, store) = makeCache()
+        let primary = URL(string: "https://host.example/live/u/p/1.ts")!
+        let fallback = URL(string: "https://host.example/live/u/p/1.m3u8")!
+        store.save([primary.absoluteString: fallback.absoluteString], filename: "playback-candidates.json")
+        let aetherCache = PlaybackCandidateCache(fileStore: store)
+        XCTAssertNil(aetherCache.successfulURL(for: primary))
+        aetherCache.record(primary, for: primary)
+        XCTAssertEqual(PlaybackCandidateCache(fileStore: store).successfulURL(for: primary), primary.absoluteString)
+    }
+
     func testWinnersAreKeptPerStation() {
         let (cache, _) = makeCache()
         let first = URL(string: "https://host.example/live/u/p/1.mp3")!

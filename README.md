@@ -66,13 +66,15 @@ docs/                         Setup, secrets, installation instructions
 
 ## Quick start (developers)
 
-Open `IPTVRadio.xcodeproj` in Xcode 16 or newer and press Cmd+R. No extra setup is
-required; there are no third-party dependencies.
+Open `IPTVRadio.xcodeproj` in Xcode 26 or newer and press Cmd+R. Swift Package
+Manager resolves the pinned AetherEngine audio runtime and its decoder frameworks.
+For the test target, first generate the synthetic transport stream with
+`bash scripts/make-audio-fixture.sh` (requires FFmpeg).
 
 - Bundle ID: configurable via the `IPTVRADIO_BUNDLE_IDENTIFIER` build setting
   (default `com.example.IPTVRadio`). Override from the CLI with
   `xcodebuild ... IPTVRADIO_BUNDLE_IDENTIFIER=com.yourco.IPTVRadio`.
-- Deployment target: iOS 17.0, SDK: latest Xcode.
+- Deployment target: iOS 18.0 (AetherEngine 7.x's minimum), SDK: latest Xcode.
 
 ## CI/CD
 
@@ -82,7 +84,9 @@ required; there are no third-party dependencies.
    uploading `.xcresult` summaries and logs.
 2. **security-scan** — fails the build if signing material is committed or the
    networking layer logs URLs.
-3. **build** — always produces an **unsigned simulator build** artifact; when signing
+3. **build** — produces an **unsigned iPhone device IPA** for re-signing and an
+   unsigned simulator diagnostic artifact; verifies the embedded decoder frameworks
+   and notices before packaging. When signing
    secrets are configured it also archives with `xcodebuild` and exports a **signed,
    installable IPA**, then optionally publishes a GitHub Release (on `v*` tags) and
    uploads to TestFlight.
@@ -95,11 +99,19 @@ certificate/profile/API-key setup, and `docs/INSTALL.md` for installing the IPA.
 
 ## Third-party components
 
-- **Playback engine:** [VLCKit](https://code.videolan.org/videolan/VLCKit) (LGPL-2.1). It plays provider
-  stream formats Apple's AVPlayer refuses, such as raw MPEG-TS and redirecting audio-only endpoints.
-  An AVPlayer engine was offered alongside it and has been removed: it cannot open raw MPEG-TS, so on a
-  provider that serves it AVPlayer fell back to the panel's transcoded HLS — worse audio — and the ID3
-  metadata that was its one advantage turned out not to be present in that HLS anyway.
+- **Playback engine:** [AetherEngine 7.38.1](https://github.com/superuser404notfound/AetherEngine/tree/7.38.1),
+  configured for audio-only radio playback. VLC is removed. Raw HTTP streams use
+  FFmpeg decoding into the system audio renderer; no video decoder, HLS remuxer or
+  local video server is created. Live HLS uses the engine's ingest/audio path when
+  supported, with native HLS compatibility for other segment formats. Diagnostics
+  identify the actual path. The original provider URL/candidate order is preserved.
+- The local `Packages/AetherAudioRuntime` manifest disables the optional TrueHD
+  Atmos/DTS:X object-decoder traits. The lean mode reduces runtime work; it does
+  not remove every video codec from the upstream binary distribution.
+- Decoder frameworks remain dynamically embedded. Exact source links and license
+  texts are shipped under Settings > Privacy > Playback acknowledgements.
+- See [the integration notes](docs/aether-audio.md) for buffering, route ownership,
+  validation and physical-device checks.
 
 ## Privacy & authorization
 
@@ -121,6 +133,6 @@ certificate/profile/API-key setup, and `docs/INSTALL.md` for installing the IPA.
 - Aether Dial depends on a public, community-maintained station directory. Its health
   checks reduce broken results but cannot guarantee a station is playable at every moment.
 - Xtream providers vary wildly; unusual deployments may need keyword tuning in Settings.
-- A signed device IPA requires an Apple Developer account with a matching certificate
-  and provisioning profile; without them CI produces the clearly-labeled unsigned
-  simulator diagnostic build only.
+- Without signing secrets CI still produces `IPTVRadio-unsigned-device.ipa`, which
+  must be signed with NullSign or another authorized signing tool before installation.
+  The separate simulator artifact cannot run on an iPhone.

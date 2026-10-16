@@ -133,7 +133,7 @@ final class PlaybackEngine: ObservableObject {
     private var startedAtRememberedEndpoint = false
 
     init(
-        player: AudioPlayerControlling = VLCPlayerAdapter(),
+        player: AudioPlayerControlling? = nil,
         audioSession: AudioSessionControlling = AVAudioSessionAdapter(),
         settings: SettingsStore,
         connectivity: ConnectivityMonitor,
@@ -152,7 +152,7 @@ final class PlaybackEngine: ObservableObject {
         networkRecoveryDelay: TimeInterval = 3,
         bufferChangeDelay: TimeInterval = 1.5
     ) {
-        self.player = player
+        self.player = player ?? AetherPlayerAdapter()
         self.audioSession = audioSession
         self.settings = settings
         self.connectivity = connectivity
@@ -227,6 +227,7 @@ final class PlaybackEngine: ObservableObject {
         candidateOutcomes = [:]
         startedAtRememberedEndpoint = false
         streamDiagnostics = nil
+        lastDiagnosticsSample = nil
         nowPlayingMetadata = nil
         probeResultForActiveStation = nil
         activePlaybackURL = nil
@@ -517,6 +518,7 @@ final class PlaybackEngine: ObservableObject {
         activePlaybackURL = candidate
         let buffer = bufferForCurrentConnection
         activeBuffer = buffer
+        lastDiagnosticsSample = nil
         player.load(url: candidate, bufferDuration: buffer.duration)
         startWatchdog(station: station)
     }
@@ -1027,7 +1029,10 @@ final class PlaybackEngine: ObservableObject {
             songSources: songSourceReports,
             candidates: candidateReports(),
             startedAtRememberedEndpoint: startedAtRememberedEndpoint,
-            buffer: activeBuffer
+            buffer: activeBuffer,
+            playbackEngine: sample.playbackEngine ?? player.engineName,
+            playbackRoute: sample.playbackRoute,
+            bufferIsEstimated: sample.bufferIsEstimated
         )
     }
 
@@ -1136,9 +1141,9 @@ final class PlaybackEngine: ObservableObject {
             nowPlaying.update(state: state, buffering: false)
             nowPlaying.loadArtwork(for: station)
             startSongInfoPolling(for: station)
-            // Emit a diagnostics sample immediately: libVLC exposes no access
-            // log, so this is the only one there will be.
-            handleDiagnosticsSample(StreamDiagnosticsSample(
+            // Fill the UI immediately; the player supplies source-track
+            // diagnostics once its actual audio track is known.
+            handleDiagnosticsSample(lastDiagnosticsSample ?? StreamDiagnosticsSample(
                 streamExtension: activePlaybackURL?.pathExtension ?? "",
                 indicatedBitrate: nil,
                 observedBitrate: nil,
