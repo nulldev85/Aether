@@ -136,6 +136,9 @@ final class RadioStreamReader: NSObject, RadioAudioRuntime.ByteReader, URLSessio
         queuedBytes -= count
         deliveredBytes += Int64(count)
         if headOffset == chunks[head].count {
+            // Release the payload immediately; waiting for the array's next
+            // compaction could retain 64 already-consumed large deliveries.
+            chunks[head] = Data()
             head += 1; headOffset = 0
             if head >= 64 { chunks.removeFirst(head); head = 0 }
         }

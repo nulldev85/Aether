@@ -32,6 +32,7 @@ final class AetherPlayerAdapter: NSObject, AudioPlayerControlling, AVPlayerItemM
     private var staleSince = Date()
     private var reportedStall = false
     private var lastSample: StreamDiagnosticsSample?
+    private var lastMetadata: StreamMetadataUpdate?
     private let httpConfiguration: URLSessionConfiguration
     private var registeredURLs = Set<String>()
     private var metadataOutput: AVPlayerItemMetadataOutput?
@@ -107,7 +108,7 @@ final class AetherPlayerAdapter: NSObject, AudioPlayerControlling, AVPlayerItemM
                     guard let self, self.generation == token else { return }
                     let update = StreamMetadataParser.splittingCombinedTitle(
                         StreamMetadataUpdate(title: title, artist: nil, artworkData: nil))
-                    self.onMetadata?(update)
+                    self.emitMetadata(update)
                 }
             }, onWaiting: {})
             self.reader = reader
@@ -278,6 +279,7 @@ final class AetherPlayerAdapter: NSObject, AudioPlayerControlling, AVPlayerItemM
         nativeHLSFallback = false
         lastProgress = 0
         lastSample = nil
+        lastMetadata = nil
         activeURL = nil
         detachMetadata()
         loadTask?.cancel(); loadTask = nil
@@ -298,8 +300,14 @@ final class AetherPlayerAdapter: NSObject, AudioPlayerControlling, AVPlayerItemM
         let update = Self.timedMetadata(groups.flatMap(\.items))
         Task { @MainActor [weak self] in
             guard let self, self.metadataOutput === output, !update.isEmpty else { return }
-            self.onMetadata?(update)
+            self.emitMetadata(update)
         }
+    }
+
+    private func emitMetadata(_ update: StreamMetadataUpdate) {
+        guard !update.isEmpty, update != lastMetadata else { return }
+        lastMetadata = update
+        onMetadata?(update)
     }
 
     nonisolated static func timedMetadata(_ items: [AVMetadataItem]) -> StreamMetadataUpdate {
