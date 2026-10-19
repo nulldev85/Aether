@@ -21,8 +21,10 @@ struct LoginView: View {
                     header
 
                     Picker("Sign-in method", selection: $mode) {
-                        Text("Xtream Codes").tag(SettingsStore.AuthMode.xtream)
-                        Text("M3U Playlist").tag(SettingsStore.AuthMode.m3u)
+                        Text("Xtream Codes").font(.radio(.subheadline, .semibold))
+                            .tag(SettingsStore.AuthMode.xtream)
+                        Text("M3U Playlist").font(.radio(.subheadline, .semibold))
+                            .tag(SettingsStore.AuthMode.m3u)
                     }
                     .pickerStyle(.segmented)
                     .accessibilityIdentifier("login.methodPicker")

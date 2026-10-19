@@ -101,11 +101,11 @@ struct SettingsView: View {
 
     private var appearanceSection: some View {
         settingsGroup("Appearance", systemImage: "paintbrush.pointed") {
-            LabeledContent("Appearance", value: "Lineup")
+            AetherLabeledValue("Appearance", value: "Lineup")
                 .aetherSettingsRow()
             settingsFooter("Lineup's charcoal panels, rounded type and broadcast-red accent throughout Aether.")
             settingsDivider
-            Toggle("Liquid Glass navigation", isOn: $settings.liquidGlassEnabled)
+            AetherSettingToggle("Liquid Glass navigation", isOn: $settings.liquidGlassEnabled)
                 .accessibilityIdentifier("settings.liquidGlass")
                 .aetherSettingsRow()
             settingsFooter("Turn off for Lineup's compact floating navigation. Liquid Glass is available on iOS 26 and later.")
@@ -115,15 +115,15 @@ struct SettingsView: View {
     private var accountSection: some View {
         settingsGroup("Account", systemImage: "person.crop.circle") {
             if let session = activeSessionDescription {
-                LabeledContent("Status", value: session.status)
+                AetherLabeledValue("Status", value: session.status)
                     .aetherSettingsRow()
                 if let expiry = session.expiry {
                     settingsDivider
-                    LabeledContent("Subscription expires", value: expiry)
+                    AetherLabeledValue("Subscription expires", value: expiry)
                         .aetherSettingsRow()
                 }
             } else {
-                LabeledContent("Status", value: "Signed in")
+                AetherLabeledValue("Status", value: "Signed in")
                     .aetherSettingsRow()
             }
             if let warning = auth.insecureEndpointWarning {
@@ -136,6 +136,7 @@ struct SettingsView: View {
             Button("Sign Out", role: .destructive) {
                 confirmSignOut = true
             }
+            .font(.radio(.body, .medium))
             .foregroundStyle(AetherTheme.destructive)
             .accessibilityIdentifier("settings.signOut")
             .aetherSettingsRow()
@@ -145,15 +146,17 @@ struct SettingsView: View {
     private var playbackSection: some View {
         VStack(spacing: 24) {
             settingsGroup("Streaming", systemImage: "antenna.radiowaves.left.and.right") {
-                Toggle("Allow cellular streaming", isOn: $settings.cellularAllowed)
+                AetherSettingToggle("Allow cellular streaming", isOn: $settings.cellularAllowed)
                     .accessibilityIdentifier("settings.cellular")
                     .aetherSettingsRow()
                 settingsDivider
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text("Cellular buffer")
+                            .font(.radio(.body, .medium))
                         Spacer()
                         Text("\(Int(settings.cellularBuffer)) s")
+                            .font(.radio(.body))
                             .foregroundStyle(AetherTheme.secondaryText)
                     }
                     Slider(value: $settings.cellularBuffer, in: StreamBuffer.cellularRange, step: 1)
@@ -169,8 +172,10 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text("Stream timeout")
+                            .font(.radio(.body, .medium))
                         Spacer()
                         Text("\(Int(settings.streamTimeout)) s")
+                            .font(.radio(.body))
                             .foregroundStyle(AetherTheme.secondaryText)
                     }
                     Slider(value: $settings.streamTimeout, in: 5...60, step: 1)
@@ -183,8 +188,10 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text("Auto-retry attempts")
+                            .font(.radio(.body, .medium))
                         Spacer()
                         Text("\(settings.retryLimit)")
+                            .font(.radio(.body))
                             .foregroundStyle(AetherTheme.secondaryText)
                     }
                     Slider(value: Binding(
@@ -200,13 +207,13 @@ struct SettingsView: View {
                 SleepTimerStatusRow()
                     .aetherSettingsRow()
                 settingsDivider
-                Toggle("Prefer audio-only stream", isOn: $settings.preferAudioOnlyRendition)
+                AetherSettingToggle("Prefer audio-only stream", isOn: $settings.preferAudioOnlyRendition)
                     .accessibilityIdentifier("settings.audioOnly")
                     .aetherSettingsRow()
                 settingsFooter("Uses a dedicated audio track when an HLS stream offers one.")
             }
             settingsGroup("Song information", systemImage: "music.note") {
-                Toggle("Look up song artwork online", isOn: $settings.lookupSongArtwork)
+                AetherSettingToggle("Look up song artwork online", isOn: $settings.lookupSongArtwork)
                     .accessibilityIdentifier("settings.artworkLookup")
                     .aetherSettingsRow()
                 settingsDivider
@@ -221,11 +228,11 @@ struct SettingsView: View {
                 settingsFooter("When the stream has no artwork, Aether can look up the current song in Apple's public catalog. No account or tracking is involved; turn this off for fully offline metadata.")
             }
             settingsGroup("Audio output", systemImage: "hifispeaker") {
-                Toggle("Show Sonos / AirPlay output", isOn: $settings.sonosOutputControl)
+                AetherSettingToggle("Show Sonos / AirPlay output", isOn: $settings.sonosOutputControl)
                     .accessibilityIdentifier("settings.sonosOutput")
                     .aetherSettingsRow()
                 settingsDivider
-                Toggle("Show Bluetooth output", isOn: $settings.bluetoothOutputControl)
+                AetherSettingToggle("Show Bluetooth output", isOn: $settings.bluetoothOutputControl)
                     .accessibilityIdentifier("settings.bluetoothOutput")
                     .aetherSettingsRow()
                 settingsFooter("Now Playing shows one output button. With both switches on, it shows AirPlay; paired Bluetooth audio is also available through iOS audio output controls. Sonos speakers need AirPlay support and the same Wi-Fi network.")
@@ -236,11 +243,11 @@ struct SettingsView: View {
     private var filteringSection: some View {
         VStack(spacing: 24) {
             settingsGroup("Station filtering", systemImage: "line.3.horizontal.decrease") {
-                Toggle("Show only SiriusXM-labelled stations", isOn: $settings.siriusOnly)
+                AetherSettingToggle("Show only SiriusXM-labelled stations", isOn: $settings.siriusOnly)
                     .accessibilityIdentifier("settings.siriusOnly")
                     .aetherSettingsRow()
                 settingsDivider
-                Toggle("Show all detected radio stations", isOn: $settings.showAllStations)
+                AetherSettingToggle("Show all detected radio stations", isOn: $settings.showAllStations)
                     .accessibilityIdentifier("settings.showAll")
                     .aetherSettingsRow()
             }
@@ -259,13 +266,14 @@ struct SettingsView: View {
 
     private var cacheSection: some View {
         settingsGroup("Data", systemImage: "externaldrive") {
-            LabeledContent("Cached data size", value: ByteCountFormatter.string(fromByteCount: Int64(cacheSize), countStyle: .file))
+            AetherLabeledValue("Cached data size", value: ByteCountFormatter.string(fromByteCount: Int64(cacheSize), countStyle: .file))
                 .aetherSettingsRow()
             settingsDivider
             Button("Clear station cache") {
                 library.clearCacheData()
                 cacheCleared = true
             }
+            .font(.radio(.body, .medium))
             .alert("Cache cleared", isPresented: $cacheCleared) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -329,7 +337,7 @@ struct SettingsView: View {
 
     private func settingsNavigationLabel(_ title: String) -> some View {
         HStack {
-            Text(title)
+            Text(title).font(.radio(.body, .medium))
             Spacer()
             Image(systemName: "chevron.right")
                 .font(.radio(.subheadline, .semibold))
@@ -356,7 +364,9 @@ struct SettingsView: View {
 
 private extension View {
     func aetherSettingsRow() -> some View {
-        frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
+        font(.radio(.body, .medium))
+            .fontDesign(.rounded)
+            .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
     }
 }
 
@@ -369,9 +379,9 @@ struct SleepTimerStatusRow: View {
             let remaining = max(0, deadline.timeIntervalSinceNow)
             let minutes = Int(remaining / 60)
             let seconds = Int(remaining.truncatingRemainder(dividingBy: 60))
-            LabeledContent("Sleep timer", value: String(format: "%d:%02d", minutes, seconds))
+            AetherLabeledValue("Sleep timer", value: String(format: "%d:%02d", minutes, seconds))
         } else {
-            LabeledContent("Sleep timer", value: "Off")
+            AetherLabeledValue("Sleep timer", value: "Off")
         }
     }
 }
@@ -388,42 +398,54 @@ struct DetectionRulesEditorView: View {
         Form {
             Section {
                 TextEditor(text: $siriusText)
+                    .font(.radio(.body))
                     .frame(minHeight: 60)
                     .accessibilityLabel("Sirius keywords, one per line")
             } header: {
                 Text("SiriusXM keywords")
+                    .font(.radio(.footnote, .semibold))
             } footer: {
                 Text("Case-insensitive. Matched against station names, groups and EPG ids. One keyword per line.")
+                    .font(.radio(.footnote))
             }
 
             Section {
                 TextEditor(text: $radioGroupText)
+                    .font(.radio(.body))
                     .frame(minHeight: 80)
                     .accessibilityLabel("Radio group keywords, one per line")
             } header: {
                 Text("Radio group keywords")
+                    .font(.radio(.footnote, .semibold))
             } footer: {
                 Text("Group titles (categories) that indicate audio stations, one per line.")
+                    .font(.radio(.footnote))
             }
 
             Section {
                 TextEditor(text: $radioNameText)
+                    .font(.radio(.body))
                     .frame(minHeight: 100)
                     .accessibilityLabel("Radio name keywords, one per line")
             } header: {
                 Text("Radio name keywords")
+                    .font(.radio(.footnote, .semibold))
             } footer: {
                 Text("Channel-name keywords that indicate audio, one per line.")
+                    .font(.radio(.footnote))
             }
 
             Section {
                 TextEditor(text: $videoGroupText)
+                    .font(.radio(.body))
                     .frame(minHeight: 60)
                     .accessibilityLabel("Video group keywords, one per line")
             } header: {
                 Text("Video group keywords")
+                    .font(.radio(.footnote, .semibold))
             } footer: {
                 Text("Group titles that indicate video channels, which are excluded, one per line.")
+                    .font(.radio(.footnote))
             }
 
             Section {
@@ -431,6 +453,7 @@ struct DetectionRulesEditorView: View {
                     settings.resetDetectionRules()
                     loadFields()
                 }
+                .font(.radio(.body, .medium))
             }
         }
         .radioSettingsList()

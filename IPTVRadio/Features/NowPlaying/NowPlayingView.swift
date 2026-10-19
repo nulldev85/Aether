@@ -280,6 +280,7 @@ struct SleepTimerSheet: View {
                             dismiss()
                         } label: {
                             Text("\(Int(minutes)) minutes")
+                                .font(.radio(.body, .medium))
                         }
                     }
                 }
@@ -290,6 +291,7 @@ struct SleepTimerSheet: View {
                             dismiss()
                         } label: {
                             Text("Cancel sleep timer")
+                                .font(.radio(.body, .medium))
                         }
                     }
                 }

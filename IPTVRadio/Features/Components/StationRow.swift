@@ -34,8 +34,7 @@ struct StationRow: View {
         } label: {
             HStack(spacing: 14) {
                 StationArtwork(logoURL: displayedStation.logoURL, size: 54)
-                    .padding(5)
-                    .background(AetherTheme.canvas, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .frame(width: 64, height: 64)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(station.name)

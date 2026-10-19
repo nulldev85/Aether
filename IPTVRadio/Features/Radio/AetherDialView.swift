@@ -47,6 +47,7 @@ struct AetherDialView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
+                        .font(.radio(.body, .semibold))
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -84,6 +85,7 @@ struct AetherDialView: View {
                     .tracking(1.4)
                     .foregroundStyle(AetherTheme.secondaryText)
                 TextField("State or country", text: $place)
+                    .font(.radio(.body))
                     .textInputAutocapitalization(.words)
                     .submitLabel(.search)
                     .onSubmit { Task { await search() } }
@@ -101,8 +103,7 @@ struct AetherDialView: View {
                     .foregroundStyle(AetherTheme.secondaryText)
             }
 
-            Toggle("Explore worldwide", isOn: $worldwide)
-                .font(.radio(.subheadline, .medium))
+            AetherSettingToggle("Explore worldwide", isOn: $worldwide, textStyle: .subheadline)
 
             VStack(alignment: .leading, spacing: 7) {
                 Text("STATION NAME")
@@ -110,6 +111,7 @@ struct AetherDialView: View {
                     .tracking(1.4)
                     .foregroundStyle(AetherTheme.secondaryText)
                 TextField("Optional", text: $stationName)
+                    .font(.radio(.body))
                     .submitLabel(.search)
                     .onSubmit { Task { await search() } }
                     .padding(.horizontal, 14)
@@ -204,14 +206,17 @@ struct AetherDialView: View {
 
             if isSearching && results.isEmpty {
                 ProgressView("Finding stations…")
+                    .font(.radio(.subheadline))
                     .frame(maxWidth: .infinity, minHeight: 140)
             } else if let searchError {
                 VStack(spacing: 12) {
                     Image(systemName: "wifi.exclamationmark")
                         .font(.radio(.title2))
                     Text(searchError)
+                        .font(.radio(.body))
                         .multilineTextAlignment(.center)
                     Button("Try again") { Task { await search() } }
+                        .font(.radio(.body, .medium))
                 }
                 .foregroundStyle(AetherTheme.secondaryText)
                 .frame(maxWidth: .infinity, minHeight: 140)

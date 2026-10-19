@@ -95,6 +95,65 @@ struct AetherNavigationButtonStyle: ButtonStyle {
     }
 }
 
+/// Explicit label fonts avoid the title-only control initializers choosing
+/// their own standard text style inside Forms and native toggle styles.
+struct AetherSettingToggle: View {
+    let title: String
+    @Binding var isOn: Bool
+    var textStyle: Font.TextStyle = .body
+
+    init(_ title: String, isOn: Binding<Bool>, textStyle: Font.TextStyle = .body) {
+        self.title = title
+        _isOn = isOn
+        self.textStyle = textStyle
+    }
+
+    var body: some View {
+        Toggle(isOn: $isOn) {
+            Text(title).font(.radio(textStyle, .medium))
+        }
+        .tint(AetherTheme.accent)
+    }
+}
+
+struct AetherLabeledValue: View {
+    let title: String
+    let value: String
+    var textStyle: Font.TextStyle = .body
+
+    init(_ title: String, value: String, textStyle: Font.TextStyle = .body) {
+        self.title = title
+        self.value = value
+        self.textStyle = textStyle
+    }
+
+    var body: some View {
+        LabeledContent {
+            Text(value).font(.radio(textStyle))
+                .foregroundStyle(AetherTheme.mutedIcon)
+        } label: {
+            Text(title).font(.radio(textStyle, .medium))
+                .foregroundStyle(AetherTheme.primaryText)
+        }
+    }
+}
+
+struct AetherFormSection<Content: View>: View {
+    let title: String
+    let content: Content
+
+    init(_ title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
+
+    var body: some View {
+        Section { content } header: {
+            Text(title).font(.radio(.footnote, .semibold))
+        }
+    }
+}
+
 extension View {
     func radioField() -> some View {
         textFieldStyle(.plain).font(.radio(.body))
@@ -104,6 +163,8 @@ extension View {
 
     func radioSettingsList() -> some View {
         listStyle(.insetGrouped)
+            .font(.radio(.body))
+            .fontDesign(.rounded)
             .environment(\.defaultMinListRowHeight, 58)
             .listSectionSpacing(24)
             .scrollContentBackground(.hidden)

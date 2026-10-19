@@ -48,7 +48,9 @@ struct ManualRadioView: View {
                             .listRowSeparator(.hidden)
                             .swipeActions(edge: .trailing) {
                                 Button("Delete", role: .destructive) { delete(entry) }
+                                    .font(.radio(.body, .medium))
                                 Button("Edit") { editor = EditorTarget(entry: entry) }
+                                    .font(.radio(.body, .medium))
                                     .tint(AetherTheme.accent)
                             }
                             .contextMenu {
@@ -56,11 +58,13 @@ struct ManualRadioView: View {
                                     editor = EditorTarget(entry: entry)
                                 } label: {
                                     Label("Edit Station", systemImage: "pencil")
+                                        .font(.radio(.body, .medium))
                                 }
                                 Button(role: .destructive) {
                                     delete(entry)
                                 } label: {
                                     Label("Delete Station", systemImage: "trash")
+                                        .font(.radio(.body, .medium))
                                 }
                             }
                         }
@@ -79,7 +83,7 @@ struct ManualRadioView: View {
                     } label: {
                         HStack(spacing: 5) {
                             Image(systemName: "safari")
-                            Text("Dial")
+                            Text("Dial").font(.radio(.subheadline, .semibold))
                         }
                         .font(.radio(.subheadline, .semibold))
                     }
@@ -93,7 +97,7 @@ struct ManualRadioView: View {
                                 isReordering.toggle()
                             } label: {
                                 if isReordering {
-                                    Text("Done")
+                                    Text("Done").font(.radio(.body, .semibold))
                                 } else {
                                     Image(systemName: "arrow.up.arrow.down")
                                         .foregroundStyle(AetherTheme.mutedIcon)
@@ -215,20 +219,25 @@ private struct ManualStationEditorView: View {
             Form {
                 Section {
                     TextField("Station name", text: $name)
+                        .font(.radio(.body))
                         .textContentType(.name)
                         .accessibilityIdentifier("manual.name")
                     TextField("Stream URL", text: $streamURL)
+                        .font(.radio(.body))
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .accessibilityIdentifier("manual.url")
                 } header: {
                     Text("Station")
+                        .font(.radio(.footnote, .semibold))
                 } footer: {
                     Text("Use a direct MP3, AAC, AAC+, Ogg, Opus, FLAC or HLS (.m3u8) link, or an M3U/PLS station playlist. HTTP and HTTPS are supported.")
+                        .font(.radio(.footnote))
                 }
-                Section("Optional") {
+                AetherFormSection("Optional") {
                     TextField("Logo URL", text: $logoURL)
+                        .font(.radio(.body))
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
@@ -240,6 +249,7 @@ private struct ManualStationEditorView: View {
                 if let errorMessage {
                     Section {
                         Label(errorMessage, systemImage: "exclamationmark.circle")
+                            .font(.radio(.body))
                             .foregroundStyle(AetherTheme.destructive)
                             .accessibilityIdentifier("manual.error")
                     }

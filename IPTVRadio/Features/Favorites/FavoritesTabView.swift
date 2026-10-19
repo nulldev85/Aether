@@ -52,7 +52,7 @@ struct FavoritesTabView: View {
                             isReordering.toggle()
                         } label: {
                             if isReordering {
-                                Text("Done")
+                                Text("Done").font(.radio(.body, .semibold))
                             } else {
                                 Image(systemName: "arrow.up.arrow.down")
                                     .foregroundStyle(AetherTheme.mutedIcon)

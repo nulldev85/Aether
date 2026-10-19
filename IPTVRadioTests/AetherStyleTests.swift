@@ -1,6 +1,7 @@
 import XCTest
 import UIKit
 import QuartzCore
+import SwiftUI
 @testable import IPTVRadio
 
 @MainActor
@@ -43,12 +44,32 @@ final class AetherStyleTests: XCTestCase {
         XCTAssertEqual(AetherNavigationLayout.padding, 4)
     }
 
-    func testNativeNavigationTypefaceMatchesLineupsRoundedSystemFace() {
-        let actual = AetherTheme.roundedUIFont(17, .heavy)
-        let system = UIFont.systemFont(ofSize: 17, weight: .heavy)
-        let expected = UIFont(descriptor: system.fontDescriptor.withDesign(.rounded) ?? system.fontDescriptor, size: 17)
-        XCTAssertEqual(actual.fontName, expected.fontName)
-        XCTAssertEqual(actual.pointSize, 17)
+    func testNativeNavigationTypefaceMatchesLineupsRoundedSystemFace() throws {
+        let sizes: [CGFloat] = [10, 13, 17, 34]
+        let weights: [UIFont.Weight] = [.regular, .medium, .semibold, .heavy]
+        for size in sizes {
+            for weight in weights {
+                let actual = AetherTheme.roundedUIFont(size, weight)
+                let system = UIFont.systemFont(ofSize: size, weight: weight)
+                let descriptor = try XCTUnwrap(system.fontDescriptor.withDesign(.rounded))
+                let expected = UIFont(descriptor: descriptor, size: size)
+                XCTAssertEqual(actual.fontName, expected.fontName)
+                XCTAssertEqual(actual.pointSize, size)
+            }
+        }
+    }
+
+    func testSettingsDynamicTextStylesKeepRoundedFaceAndRequestedWeights() {
+        let styles: [Font.TextStyle] = [.largeTitle, .title, .title2, .title3, .headline,
+                                        .subheadline, .body, .callout, .footnote, .caption, .caption2]
+        let weights: [Font.Weight] = [.regular, .medium, .semibold, .bold, .heavy]
+        for style in styles {
+            let defaultWeight: Font.Weight = style == .headline ? .semibold : .regular
+            XCTAssertEqual(Font.radio(style), .system(style, design: .rounded, weight: defaultWeight))
+            for weight in weights {
+                XCTAssertEqual(Font.radio(style, weight), .system(style, design: .rounded, weight: weight))
+            }
+        }
     }
 
     func testPreservedVinylStillSpinsPausesAndResumesOneAnimation() throws {

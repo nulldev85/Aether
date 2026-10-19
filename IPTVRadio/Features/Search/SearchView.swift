@@ -48,6 +48,7 @@ struct SearchView: View {
                 .submitLabel(.search)
                 .foregroundStyle(AetherTheme.primaryText)
                 .accessibilityIdentifier("search.field")
+                .font(.radio(.body))
             if !library.searchQuery.isEmpty {
                 Button {
                     library.searchQuery = ""

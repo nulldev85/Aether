@@ -58,6 +58,58 @@ class RadioDesignTests(unittest.TestCase):
                 with self.subTest(background=background, foreground=foreground):
                     self.assertGreaterEqual(contrast(foreground, background), 4.5)
 
+    def test_station_logos_have_no_app_added_tiles(self):
+        rows = source("IPTVRadio/Features/Components/StationRow.swift")
+        # Check the modifiers on the logo, not the enclosing station card.
+        logo = rows.split("StationArtwork(logoURL: displayedStation.logoURL", 1)[1]
+        logo = logo.split("VStack(alignment:", 1)[0]
+        self.assertIn(".frame(width: 64, height: 64)", logo)
+        self.assertNotIn(".background(", logo)
+        self.assertNotIn(".overlay(", logo)
+        artwork = rows.split("struct StationArtwork: View", 1)[1].split("struct PlaybackArtwork:", 1)[0]
+        self.assertNotIn(".background(", artwork)
+        self.assertNotIn(".fill(", artwork)
+        self.assertIn(".aspectRatio(contentMode: .fit)", artwork)
+        # Keep existing provider-background removal and image caching intact.
+        self.assertIn("return LogoBackgroundKeyer.keyed(image)", rows)
+        dial = source("IPTVRadio/Features/Radio/AetherDialView.swift")
+        logo = dial.split("StationArtwork(logoURL: station.logoURL", 1)[1].split("VStack(alignment:", 1)[0]
+        self.assertNotIn(".background(", logo)
+
+    def test_settings_control_labels_and_values_choose_rounded_fonts_explicitly(self):
+        components = source("IPTVRadio/App/AetherComponents.swift")
+        toggle = components.split("struct AetherSettingToggle:", 1)[1].split("struct AetherLabeledValue:", 1)[0]
+        self.assertIn("Toggle(isOn: $isOn)", toggle)
+        self.assertIn("Text(title).font(.radio(textStyle, .medium))", toggle)
+        value = components.split("struct AetherLabeledValue:", 1)[1].split("struct AetherFormSection<", 1)[0]
+        self.assertIn("Text(title).font(.radio(textStyle, .medium))", value)
+        self.assertIn("Text(value).font(.radio(textStyle))", value)
+        self.assertIn("Text(title).font(.radio(.footnote, .semibold))", components)
+        for path in (ROOT / "IPTVRadio/Features/Settings").glob("*.swift"):
+            text = path.read_text(encoding="utf-8")
+            with self.subTest(file=path.name):
+                # Native title-only constructors used to rely on root inheritance.
+                self.assertNotRegex(text, r'(?<![A-Za-z])Toggle\("')
+                self.assertNotRegex(text, r'LabeledContent\(\s*"')
+                self.assertNotRegex(text, r'\bSection\(\s*"')
+        settings = source("IPTVRadio/Features/Settings/SettingsView.swift")
+        self.assertEqual(settings.count("AetherSettingToggle("), 8)
+        self.assertIn("Text(title).font(.radio(.body, .medium))", settings)
+
+    def test_app_owned_text_inputs_do_not_rely_on_root_font_inheritance(self):
+        count = 0
+        for path in (ROOT / "IPTVRadio/Features").rglob("*.swift"):
+            lines = path.read_text(encoding="utf-8").splitlines()
+            for index, line in enumerate(lines):
+                if not re.search(r"\b(?:TextField|SecureField|TextEditor)\(", line):
+                    continue
+                count += 1
+                # Include multiline prompts and their immediate modifier chain.
+                modifiers = "\n".join(lines[index:index + 10])
+                with self.subTest(file=path.name, line=index + 1):
+                    self.assertRegex(modifiers, r"\.font\(\.radio\(|\.radioField\(\)")
+        self.assertGreaterEqual(count, 15)
+
     def test_reference_accent_has_nontext_control_contrast(self):
         # Exact Lineup broadcast red, not an invented replacement. This check
         # does not claim every small white-on-red label meets body-text AA.

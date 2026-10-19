@@ -21,18 +21,24 @@ struct PlaybackLicensesView: View {
         List {
             Section {
                 Text("AetherEngine 7.38.1 and its decoder libraries")
+                    .font(.radio(.body))
                 Link("AetherEngine source", destination: URL(string: "https://github.com/superuser404notfound/AetherEngine/tree/7.38.1")!)
+                    .font(.radio(.body, .medium))
                 Link("FFmpegBuild source", destination: URL(string: "https://github.com/superuser404notfound/FFmpegBuild/tree/3.7.1")!)
+                    .font(.radio(.body, .medium))
                 Link("LibDovi source", destination: URL(string: "https://github.com/superuser404notfound/LibDovi/tree/2.1.0")!)
+                    .font(.radio(.body, .medium))
             }
             ForEach(entries, id: \.name) { entry in
-                NavigationLink(entry.name) {
+                NavigationLink {
                     ScrollView {
                         Text(entry.text).font(.radio(.footnote)).textSelection(.enabled)
                             .frame(maxWidth: .infinity, alignment: .leading).padding()
                     }
                     .navigationTitle(entry.name)
                     .navigationBarTitleDisplayMode(.inline)
+                } label: {
+                    Text(entry.name).font(.radio(.body, .medium))
                 }
             }
         }
