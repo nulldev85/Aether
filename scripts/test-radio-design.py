@@ -131,6 +131,22 @@ class RadioDesignTests(unittest.TestCase):
             aggregate += path.relative_to(ROOT).as_posix() + "\0" + path.read_text(encoding="utf-8") + "\0"
         self.assertEqual(hashlib.sha256(aggregate.encode()).hexdigest(), REFERENCE["preservedPlaybackDigest"])
 
+    def test_full_player_docks_a_slim_card_separately_from_scrollable_record_content(self):
+        player = source("IPTVRadio/Features/NowPlaying/NowPlayingView.swift")
+        body = player.split("private func recordContent", 1)[0]
+        self.assertIn(".safeAreaInset(edge: .bottom, spacing: 0)", body)
+        self.assertIn("controlCard", body)
+        self.assertNotIn("ScrollView", body)
+        content = player.split("private func recordContent", 1)[1].split("private var controlCard:", 1)[0]
+        self.assertIn("ViewThatFits(in: .vertical)", content)
+        self.assertIn("ScrollView", content)
+        self.assertNotIn("controlCard", content)
+        self.assertIn(".frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)", content)
+        for name, value in (("transportButtonSize", 64), ("skipButtonSize", 48),
+                            ("controlRowGap", 8), ("controlVerticalPadding", 12)):
+            self.assertRegex(player, rf"static let {name}: CGFloat = {value}\b")
+        self.assertNotIn(".ignoresSafeArea", body.split(".safeAreaInset", 1)[1].split(".foregroundStyle", 1)[0])
+
     def test_icon_geometry_is_preserved_and_colors_match_lineup(self):
         icon_source = source("scripts/generate-aether-icon.py")
         tree = ast.parse(icon_source)

@@ -13,48 +13,83 @@ struct NowPlayingView: View {
     @State private var stationLogo: UIImage?
 
     var body: some View {
-        GeometryReader { proxy in
-            VStack(spacing: 0) {
-                header
-                if let station = playback.state.station {
-                    ScrollView {
-                        VStack(spacing: 24) {
-                            VinylRecordView(
-                                artwork: playback.nowPlayingMetadata?.artworkImage ?? stationLogo,
-                                isSpinning: playback.state.isPlaying && scenePhase == .active && !reduceMotion
-                            )
-                            .frame(width: recordSize(in: proxy.size), height: recordSize(in: proxy.size))
-                            .padding(.top, 12)
-
-                            trackDetails(for: station)
-                            VStack(spacing: 20) {
-                                controlRow
-                                outputControls
-                            }
-                            .padding(20)
-                            .frame(maxWidth: 440)
-                            .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: AetherTheme.panelRadius, style: .continuous))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.horizontal, AetherTheme.margin)
-                        .padding(.bottom, 32)
-                    }
-                    .scrollIndicators(.hidden)
+        VStack(spacing: 0) {
+            header
+            if let station = playback.state.station {
+                recordContent(for: station)
                     .task(id: station.id) {
                         stationLogo = nil
                         guard let url = station.logoURL else { return }
                         stationLogo = await ArtworkCache.shared.image(for: url)
                     }
-                } else {
-                    EmptyStateView(title: "Nothing playing", message: "Pick a station to start listening.", systemImage: "music.note")
-                        .frame(maxHeight: .infinity)
-                }
+            } else {
+                EmptyStateView(title: "Nothing playing", message: "Pick a station to start listening.", systemImage: "music.note")
+                    .frame(maxHeight: .infinity)
+            }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if playback.state.station != nil {
+                controlCard
+                    .padding(.horizontal, AetherTheme.margin)
+                    .padding(.top, 12)
+                    .padding(.bottom, 12)
+                    .frame(maxWidth: .infinity)
             }
         }
         .foregroundStyle(AetherTheme.primaryText)
         .background(AetherTheme.background.ignoresSafeArea())
         .presentationDragIndicator(.visible)
         .sheet(isPresented: $showSleepTimerSheet) { SleepTimerSheet() }
+    }
+
+    private func recordContent(for station: RadioStation) -> some View {
+        ViewThatFits(in: .vertical) {
+            VStack(spacing: 16) {
+                GeometryReader { stage in
+                    record(diameter: NowPlayingLayout.recordDiameter(in: stage.size))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                }
+                .frame(minHeight: NowPlayingLayout.minimumRecordStageHeight)
+                trackDetails(for: station)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            // On short screens or large text sizes, only the record/details
+            // scroll. Transport and Close remain fixed and reachable.
+            ScrollView {
+                VStack(spacing: 16) {
+                    record(diameter: NowPlayingLayout.compactRecordDiameter)
+                    trackDetails(for: station)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+            }
+            .scrollIndicators(.hidden)
+        }
+        .padding(.horizontal, AetherTheme.margin)
+        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func record(diameter: CGFloat) -> some View {
+        VinylRecordView(
+            artwork: playback.nowPlayingMetadata?.artworkImage ?? stationLogo,
+            isSpinning: playback.state.isPlaying && scenePhase == .active && !reduceMotion
+        )
+        .frame(width: diameter, height: diameter)
+    }
+
+    private var controlCard: some View {
+        VStack(spacing: NowPlayingLayout.controlRowGap) {
+            controlRow
+            outputControls
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, NowPlayingLayout.controlVerticalPadding)
+        .frame(maxWidth: 440)
+        .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: AetherTheme.panelRadius, style: .continuous))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("nowplaying.controls")
     }
 
     private var header: some View {
@@ -81,6 +116,7 @@ struct NowPlayingView: View {
                 Text(status).font(.radio(12, .bold)).tracking(0.6)
             }
             .foregroundStyle(AetherTheme.caption)
+            .accessibilityElement(children: .combine)
             .accessibilityIdentifier("nowplaying.status")
 
             if let metadata = playback.nowPlayingMetadata,
@@ -120,15 +156,11 @@ struct NowPlayingView: View {
         }
     }
 
-    private func recordSize(in size: CGSize) -> CGFloat {
-        max(120, min(size.width - 80, size.height * 0.38))
-    }
-
     private var controlRow: some View {
         HStack(spacing: 24) {
             Button { playback.previousStation() } label: {
                 Image(systemName: "backward.end.fill").font(.radio(22, .semibold))
-                    .frame(width: 52, height: 52)
+                    .frame(width: NowPlayingLayout.skipButtonSize, height: NowPlayingLayout.skipButtonSize)
                     .background(AetherTheme.selected, in: Circle())
             }
             .accessibilityLabel("Previous station")
@@ -143,7 +175,7 @@ struct NowPlayingView: View {
                 }
             } label: {
                 Image(systemName: mainButtonIcon).font(.radio(28, .semibold))
-                    .frame(width: 76, height: 76)
+                    .frame(width: NowPlayingLayout.transportButtonSize, height: NowPlayingLayout.transportButtonSize)
                     .foregroundStyle(.white)
                     .background(AetherTheme.accent, in: Circle())
             }
@@ -152,7 +184,7 @@ struct NowPlayingView: View {
 
             Button { playback.nextStation() } label: {
                 Image(systemName: "forward.end.fill").font(.radio(22, .semibold))
-                    .frame(width: 52, height: 52)
+                    .frame(width: NowPlayingLayout.skipButtonSize, height: NowPlayingLayout.skipButtonSize)
                     .background(AetherTheme.selected, in: Circle())
             }
             .accessibilityLabel("Next station")
@@ -202,6 +234,22 @@ struct NowPlayingView: View {
         case .playing, .loading: return true
         default: return false
         }
+    }
+}
+
+/// Full-player geometry only; no audio, metadata or animation behavior.
+enum NowPlayingLayout {
+    static let transportButtonSize: CGFloat = 64
+    static let skipButtonSize: CGFloat = 48
+    static let controlRowGap: CGFloat = 8
+    static let controlVerticalPadding: CGFloat = 12
+    static let minimumRecordStageHeight: CGFloat = 160
+    static let compactRecordDiameter: CGFloat = 160
+
+    static func recordDiameter(in stage: CGSize) -> CGFloat {
+        // The stage already has the page's 20-point horizontal margins.
+        // Preserve the original disc's extra breathing room on each side.
+        max(0, min(stage.width - 40, min(stage.height, 360)))
     }
 }
 

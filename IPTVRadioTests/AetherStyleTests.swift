@@ -86,4 +86,28 @@ final class AetherStyleTests: XCTestCase {
         XCTAssertEqual(disc.layer.speed, 1)
         XCTAssertEqual(disc.layer.animationKeys(), ["vinylRotation"])
     }
+
+    func testFullPlayerGeometryFitsTheAvailableRecordStageAndSlimsControlsWithoutTinyTargets() {
+        let cases: [(CGSize, CGFloat)] = [
+            (CGSize(width: 353, height: 500), 313),
+            (CGSize(width: 353, height: 180), 180),
+            (CGSize(width: 280, height: 400), 240),
+            (CGSize(width: 984, height: 700), 360),
+            (.zero, 0)
+        ]
+        for (stage, expected) in cases {
+            let diameter = NowPlayingLayout.recordDiameter(in: stage)
+            XCTAssertEqual(diameter, expected)
+            XCTAssertGreaterThanOrEqual(diameter, 0)
+            XCTAssertLessThanOrEqual(diameter, stage.height)
+            XCTAssertLessThanOrEqual(diameter, stage.width)
+        }
+        XCTAssertGreaterThanOrEqual(NowPlayingLayout.skipButtonSize, 44)
+        XCTAssertGreaterThanOrEqual(NowPlayingLayout.transportButtonSize, 44)
+        let cardHeight = NowPlayingLayout.transportButtonSize + 44
+            + NowPlayingLayout.controlRowGap + 2 * NowPlayingLayout.controlVerticalPadding
+        XCTAssertEqual(cardHeight, 140)
+        XCTAssertLessThanOrEqual(cardHeight, 176 * 0.8)
+        XCTAssertGreaterThanOrEqual(NowPlayingLayout.minimumRecordStageHeight, NowPlayingLayout.compactRecordDiameter)
+    }
 }

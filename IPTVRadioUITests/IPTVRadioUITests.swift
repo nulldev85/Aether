@@ -21,6 +21,26 @@ final class IPTVRadioUITests: XCTestCase {
         add(attachment)
     }
 
+    private func assertBottomPlayerControls(_ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
+        let card = app.descendants(matching: .any).matching(identifier: "nowplaying.controls").firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 8), file: file, line: line)
+        XCTAssertEqual(card.frame.midX, app.frame.midX, accuracy: 2, file: file, line: line)
+        XCTAssertLessThanOrEqual(card.frame.height, 142, "The old control card was 176 points tall", file: file, line: line)
+        let bottomGap = app.frame.maxY - card.frame.maxY
+        XCTAssertGreaterThanOrEqual(bottomGap, 12, "Respect the bottom safe area", file: file, line: line)
+        XCTAssertLessThanOrEqual(bottomGap, 90, "Controls belong at the bottom, not under the track in mid-screen", file: file, line: line)
+        for name in ["nowplaying.previous", "nowplaying.stop", "nowplaying.next"] {
+            let button = app.buttons[name]
+            XCTAssertTrue(button.isHittable, file: file, line: line)
+            XCTAssertGreaterThanOrEqual(button.frame.width, 44, file: file, line: line)
+            XCTAssertGreaterThanOrEqual(button.frame.height, 44, file: file, line: line)
+        }
+        XCTAssertEqual(app.buttons["nowplaying.stop"].frame.midX, app.frame.midX, accuracy: 2, file: file, line: line)
+        XCTAssertTrue(app.buttons["nowplaying.sleepTimer"].isHittable, file: file, line: line)
+        XCTAssertTrue(app.buttons["nowplaying.retry"].isHittable, file: file, line: line)
+        XCTAssertTrue(app.buttons["nowplaying.close"].isHittable, file: file, line: line)
+    }
+
     func testLoginFlowShowsFormAndAuthorizesMockCredentials() throws {
         let app = launch(scenario: "UITestLogin")
 
@@ -178,6 +198,15 @@ final class IPTVRadioUITests: XCTestCase {
             .matching(identifier: "nowplaying.vinyl").firstMatch.waitForExistence(timeout: 8))
         XCTAssertTrue(app.buttons["nowplaying.stop"].exists)
         XCTAssertTrue(app.buttons["nowplaying.sleepTimer"].exists)
+        assertBottomPlayerControls(app)
+        let vinyl = app.descendants(matching: .any).matching(identifier: "nowplaying.vinyl").firstMatch
+        let status = app.descendants(matching: .any).matching(identifier: "nowplaying.status").firstMatch
+        XCTAssertTrue(status.waitForExistence(timeout: 8))
+        XCTAssertEqual(vinyl.frame.midX, app.frame.midX, accuracy: 2)
+        XCTAssertEqual(vinyl.frame.width, vinyl.frame.height, accuracy: 1)
+        let stageMidY = (app.buttons["nowplaying.close"].frame.maxY + status.frame.minY) / 2
+        XCTAssertEqual(vinyl.frame.midY, stageMidY, accuracy: 3,
+                       "Center the record in the free space between the header and track details")
         capture(app, name: "Lineup style — Now Playing with preserved vinyl")
 
         app.buttons["nowplaying.close"].tap()
@@ -202,6 +231,31 @@ final class IPTVRadioUITests: XCTestCase {
         XCTAssertTrue(app.buttons["miniplayer.open"].waitForNonExistence(timeout: 8),
                       "Stopping must clear the mini player")
         XCTAssertTrue(app.buttons["Radio"].waitForExistence(timeout: 8))
+    }
+
+    func testBottomPlayerControlsStayReachableWhenRecordDetailsNeedToScroll() throws {
+        let app = launch(scenario: "UITestNowPlaying")
+        defer { XCUIDevice.shared.orientation = .portrait }
+        let mini = app.buttons["miniplayer.open"].firstMatch
+        XCTAssertTrue(mini.waitForExistence(timeout: 8))
+        mini.tap()
+        XCTAssertTrue(app.buttons["nowplaying.close"].waitForExistence(timeout: 8))
+        XCUIDevice.shared.orientation = .landscapeLeft
+        let rotated = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            app.frame.width > app.frame.height
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [rotated], timeout: 8), .completed)
+        assertBottomPlayerControls(app)
+        let scroller = app.scrollViews.firstMatch
+        XCTAssertTrue(scroller.waitForExistence(timeout: 8), "Short layouts must allow the record and details to scroll")
+        let card = app.descendants(matching: .any).matching(identifier: "nowplaying.controls").firstMatch
+        let before = card.frame
+        scroller.swipeUp()
+        XCTAssertEqual(card.frame.minY, before.minY, accuracy: 2, "Scrolling details must not move transport controls")
+        assertBottomPlayerControls(app)
+        capture(app, name: "Bottom controls — compact-height player")
+        app.buttons["nowplaying.close"].tap()
+        XCTAssertTrue(mini.waitForExistence(timeout: 8), "Closing still retains playback")
     }
 
     func testLiquidGlassSettingKeepsNavigationAndMiniPlayer() throws {
