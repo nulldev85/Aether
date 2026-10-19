@@ -151,7 +151,7 @@ jobs:
       - name: Check device package verifier regressions
         run: python3 scripts/test-aether-build.py
 
-      - name: Check shell colors and unchanged player boundaries
+      - name: Check Lineup style and preserved vinyl/playback boundaries
         run: python3 scripts/test-radio-design.py
 
   # ---------------------------------------------------------------------------

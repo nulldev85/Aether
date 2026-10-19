@@ -18,7 +18,7 @@ struct FavoritesTabView: View {
                     )
                 } else {
                     List {
-                        RadioPageHeading(title: "Favorites", subtitle: "\(favorites.favorites.count) saved stations. Always close at hand.", eyebrow: "YOUR COLLECTION")
+                        RadioPageHeading(title: "Favorites", subtitle: "\(favorites.favorites.count) saved stations. Always close at hand.")
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
                         ForEach(favorites.favorites.enumerated().map { IndexedFavorite(index: $0.offset, entry: $0.element) }) { item in
@@ -38,14 +38,6 @@ struct FavoritesTabView: View {
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
                         }
-                        if !settings.liquidGlassEnabled {
-                            Color.clear
-                                .frame(height: 61 + (playback.state.station == nil ? 0 : 60))
-                                .listRowInsets(EdgeInsets())
-                                .listRowBackground(Color.clear)
-                                .listRowSeparator(.hidden)
-                                .accessibilityHidden(true)
-                        }
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
@@ -63,7 +55,7 @@ struct FavoritesTabView: View {
                                 Text("Done")
                             } else {
                                 Image(systemName: "arrow.up.arrow.down")
-                                    .foregroundStyle(AetherInterface.mutedIcon)
+                                    .foregroundStyle(AetherTheme.mutedIcon)
                             }
                         }
                         .accessibilityLabel(isReordering ? "Done reordering" : "Reorder favorites")
@@ -71,7 +63,7 @@ struct FavoritesTabView: View {
                     }
                 }
             }
-            .background(AetherInterface.background.ignoresSafeArea())
+            .background(AetherTheme.background.ignoresSafeArea())
         }
     }
 }

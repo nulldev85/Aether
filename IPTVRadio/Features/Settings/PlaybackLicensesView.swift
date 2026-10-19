@@ -28,7 +28,7 @@ struct PlaybackLicensesView: View {
             ForEach(entries, id: \.name) { entry in
                 NavigationLink(entry.name) {
                     ScrollView {
-                        Text(entry.text).font(.footnote).textSelection(.enabled)
+                        Text(entry.text).font(.radio(.footnote)).textSelection(.enabled)
                             .frame(maxWidth: .infinity, alignment: .leading).padding()
                     }
                     .navigationTitle(entry.name)
@@ -36,6 +36,7 @@ struct PlaybackLicensesView: View {
                 }
             }
         }
+        .radioSettingsList()
         .navigationTitle("Acknowledgements")
         .navigationBarTitleDisplayMode(.inline)
     }

@@ -35,7 +35,7 @@ struct LoginView: View {
 
                     if let warning = auth.insecureEndpointWarning {
                         Label(warning, systemImage: "exclamationmark.triangle.fill")
-                            .font(.footnote)
+                            .font(.radio(.footnote))
                             .foregroundStyle(.orange)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .accessibilityIdentifier("login.insecureWarning")
@@ -43,7 +43,7 @@ struct LoginView: View {
 
                     if let error = errorMessage {
                         Label(error, systemImage: "xmark.octagon.fill")
-                            .font(.footnote)
+                            .font(.radio(.footnote))
                             .foregroundStyle(.red)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .accessibilityIdentifier("login.error")
@@ -55,7 +55,7 @@ struct LoginView: View {
                 }
                 .padding()
             }
-            .background(AetherInterface.background.ignoresSafeArea())
+            .background(AetherTheme.background.ignoresSafeArea())
             .navigationTitle("Sign In")
             .onAppear {
                 mode = environment.settings.authMode
@@ -64,7 +64,7 @@ struct LoginView: View {
     }
 
     private var header: some View {
-        RadioPageHeading(title: "Aether", subtitle: "Your radio. One place.\nSign in to load your provider's stations.", eyebrow: "INDEPENDENT LISTENING")
+        RadioPageHeading(title: "Aether", subtitle: "Your radio. One place.\nSign in to load your provider's stations.")
     }
 
     private var xtreamForm: some View {
@@ -74,20 +74,20 @@ struct LoginView: View {
                 .keyboardType(.URL)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
-                .textFieldStyle(.roundedBorder)
+                .radioField()
                 .accessibilityIdentifier("login.server")
                 .accessibilityLabel(Text("Server or portal URL"))
             TextField("Username", text: $username)
                 .textContentType(.username)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
-                .textFieldStyle(.roundedBorder)
+                .radioField()
                 .accessibilityIdentifier("login.username")
             SecureField("Password", text: $password)
                 .textContentType(.password)
                 .submitLabel(.go)
                 .onSubmit(signIn)
-                .textFieldStyle(.roundedBorder)
+                .radioField()
                 .accessibilityIdentifier("login.password")
         }
     }
@@ -99,11 +99,11 @@ struct LoginView: View {
                 .keyboardType(.URL)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
-                .textFieldStyle(.roundedBorder)
+                .radioField()
                 .accessibilityIdentifier("login.playlistURL")
             Text("The playlist is downloaded from your own provider. URLs containing embedded credentials are stored only in the Keychain and never logged.")
-                .font(.footnote)
-                .foregroundStyle(AetherInterface.secondaryText)
+                .font(.radio(.footnote))
+                .foregroundStyle(AetherTheme.secondaryText)
         }
     }
 
@@ -113,17 +113,15 @@ struct LoginView: View {
         } label: {
             Group {
                 if isSigningIn {
-                    ProgressView().tint(AetherInterface.onAccent)
+                    ProgressView().tint(AetherTheme.onAccent)
                 } else {
-                    Text("Sign In").font(.headline)
+                    Text("Sign In").font(.radio(.headline))
                 }
             }
             .frame(maxWidth: .infinity)
             .frame(height: 44)
         }
-        .background(AetherInterface.accent)
-        .foregroundStyle(AetherInterface.onAccent)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .buttonStyle(AetherButtonStyle(prominent: true))
         .disabled(isSigningIn)
         .accessibilityIdentifier("login.submit")
     }
@@ -131,16 +129,15 @@ struct LoginView: View {
     private var authorizationNotice: some View {
         VStack(alignment: .leading, spacing: 6) {
             Label("Authorization notice", systemImage: "checkmark.shield")
-                .font(.footnote.weight(.semibold))
+                .font(.radio(.footnote, .semibold))
             Text("You must have valid authorization to access provider streams. Aether does not bundle or redistribute their audio and does not bypass DRM or access restrictions. Public stations in Aether Dial are operated by third parties.")
-                .font(.caption2)
-                .foregroundStyle(AetherInterface.secondaryText)
+                .font(.radio(.caption2))
+                .foregroundStyle(AetherTheme.secondaryText)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AetherInterface.raisedSurface)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(AetherInterface.border, lineWidth: 1))
+        .background(AetherTheme.raisedSurface)
+        .clipShape(RoundedRectangle(cornerRadius: AetherTheme.panelRadius, style: .continuous))
     }
 
     private func signIn() {

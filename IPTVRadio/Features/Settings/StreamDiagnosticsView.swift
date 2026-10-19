@@ -46,10 +46,10 @@ struct StreamDiagnosticsView: View {
                     if let failure = diagnostics.lastFormatFailure {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Skipped a format")
-                                .font(.footnote.weight(.medium))
+                                .font(.radio(.footnote, .medium))
                             Text(failure)
-                                .font(.footnote)
-                                .foregroundStyle(AetherInterface.secondaryText)
+                                .font(.radio(.footnote))
+                                .foregroundStyle(AetherTheme.secondaryText)
                         }
                         .accessibilityIdentifier("diagnostics.previousFailure")
                     }
@@ -75,7 +75,7 @@ struct StreamDiagnosticsView: View {
                                 }
                                 if let detail = report.detail {
                                     Text(detail)
-                                        .font(.caption)
+                                        .font(.radio(.caption))
                                         .foregroundStyle(.secondary)
                                 }
                             }
@@ -100,7 +100,7 @@ struct StreamDiagnosticsView: View {
                                     Text("\(candidate.index). \(formatName(candidate.format))")
                                     if case .failed(let reason) = candidate.outcome, let reason {
                                         Text(reason)
-                                            .font(.caption)
+                                            .font(.radio(.caption))
                                             .foregroundStyle(.secondary)
                                     }
                                 }
@@ -126,26 +126,25 @@ struct StreamDiagnosticsView: View {
 
                 Section {
                     Text("Updated \(diagnostics.updatedAt.formatted(date: .omitted, time: .standard))")
-                        .font(.footnote)
-                        .foregroundStyle(AetherInterface.secondaryText)
+                        .font(.radio(.footnote))
+                        .foregroundStyle(AetherTheme.secondaryText)
                 }
             } else {
                 Section("Active stream") {
                     Text("No active stream. Play a station to collect diagnostics.")
-                        .foregroundStyle(AetherInterface.secondaryText)
+                        .foregroundStyle(AetherTheme.secondaryText)
                 }
             }
 
             Section {
                 Text("This app plays your provider's stream exactly as delivered — no transcoding, EQ or volume processing.\n\n“Observed bitrate” is the recent download rate and is highest right after playback starts; it does not describe audio quality. HLS streams often do not report audio bitrate figures at all.\n\nIf a station keeps pausing for a moment on cellular, raise “Cellular buffer” in Settings ▸ Playback. “Network buffer” above shows the reserve this stream was opened with.\n\nIf audio quality sounds low, switch “Stream format” in Settings ▸ Playback and compare — the format line above shows which option is playing.\n\nIf this station came from an M3U playlist link and sounds worse than another player, sign in with your provider's Xtream portal details (server URL, username, password) instead — that plays the provider's original stream rather than a re-packaged copy.")
-                    .font(.footnote)
-                    .foregroundStyle(AetherInterface.secondaryText)
+                    .font(.radio(.footnote))
+                    .foregroundStyle(AetherTheme.secondaryText)
             } header: {
                 Text("How to read this")
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(AetherInterface.background.ignoresSafeArea())
+        .radioSettingsList()
         .navigationTitle("Stream diagnostics")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -178,11 +177,11 @@ struct StreamDiagnosticsView: View {
         VStack(alignment: .leading, spacing: 8) {
             if !resolved.isEmpty {
                 LabeledContent("Channel keys tried", value: resolved.joined(separator: ", "))
-                    .font(.footnote)
+                    .font(.radio(.footnote))
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text("Channel key for this station")
-                    .font(.footnote.weight(.medium))
+                    .font(.radio(.footnote, .medium))
                 HStack {
                     TextField("e.g. octane", text: $channelKeyDraft)
                         .textInputAutocapitalization(.never)
@@ -197,7 +196,7 @@ struct StreamDiagnosticsView: View {
                     .accessibilityIdentifier("diagnostics.saveChannelKey")
                 }
                 Text("Set this when the keys above come back “HTTP 404” — that means the channel could not be matched by name. Leave it empty to go back to automatic matching.")
-                    .font(.caption)
+                    .font(.radio(.caption))
                     .foregroundStyle(.secondary)
             }
         }

@@ -1,62 +1,76 @@
 import SwiftUI
 
-/// One visual language in two appearances. Dynamic system colors let SwiftUI
-/// and UIKit follow the selected appearance without rebuilding the tab bars.
+/// Lineup iPhone reference: 97ce5e768b4f33f3271e9f2c27eec2beda93ab3f.
+/// One fixed dark palette for every Aether screen, sheet and player surface.
 enum AetherTheme {
-    private static func rgb(_ value: UInt32) -> UIColor {
-        UIColor(
-            red: CGFloat((value >> 16) & 0xFF) / 255,
-            green: CGFloat((value >> 8) & 0xFF) / 255,
-            blue: CGFloat(value & 0xFF) / 255,
-            alpha: 1
-        )
+    static func rgb(_ value: UInt32) -> UIColor {
+        UIColor(red: CGFloat((value >> 16) & 255) / 255,
+                green: CGFloat((value >> 8) & 255) / 255,
+                blue: CGFloat(value & 255) / 255, alpha: 1)
     }
 
-    private static func adaptive(light: UInt32, dark: UInt32) -> UIColor {
-        UIColor { traits in AetherTheme.rgb(traits.userInterfaceStyle == .dark ? dark : light) }
-    }
-
-    static let uiNavigationSurface = adaptive(light: 0xEDF0E8, dark: 0x1B281F)
-    static let uiPrimaryText = adaptive(light: 0x222B25, dark: 0xF2F0E7)
-    static let uiMutedIcon = adaptive(light: 0x5E705F, dark: 0xAEBFAE)
-    static let uiAccent = adaptive(light: 0x2B664C, dark: 0xB5D4B3)
-
-    static let canvas = Color(uiColor: adaptive(light: 0xF5F3EC, dark: 0x111A14))
-    static let surface = Color(uiColor: adaptive(light: 0xFFFEF9, dark: 0x1B271E))
-    static let navigationSurface = Color(uiColor: uiNavigationSurface)
-    static let primaryText = Color(uiColor: uiPrimaryText)
-    static let secondaryText = Color(uiColor: adaptive(light: 0x576359, dark: 0xC3CDC0))
+    static let uiCanvas = rgb(0x1C1C1E)
+    static let uiNavigationSurface = rgb(0x2C2C2E)
+    static let uiPrimaryText = rgb(0xFFFFFF)
+    static let uiMutedIcon = rgb(0x9E9EA5)
+    static let uiAccent = rgb(0xFF3347)
+    static let canvas = Color(uiColor: uiCanvas)
+    static let surface = Color(uiColor: uiNavigationSurface)
+    static let navigationSurface = surface
+    static let primaryText = Color.white
+    static let secondaryText = Color.white.opacity(0.66)
+    static let caption = Color(uiColor: rgb(0xCCCCCC))
     static let mutedIcon = Color(uiColor: uiMutedIcon)
     static let accent = Color(uiColor: uiAccent)
-    static let onAccent = Color(uiColor: adaptive(light: 0xFFFFFF, dark: 0x17281C))
-    static let accentSoft = Color(uiColor: adaptive(light: 0xD8E8DA, dark: 0x304938))
-    static let destructive = Color(uiColor: adaptive(light: 0x8F4036, dark: 0xF0A99D))
-    static let border = Color(uiColor: adaptive(light: 0xD0D9CE, dark: 0x3B4C3E))
-    static let tabBar = navigationSurface
+    static let onAccent = Color.white
+    // LineupAccent.red.soft: 45% white mixed into broadcast red.
+    static let accentSoft = Color(uiColor: rgb(0xFF8F9A))
+    static let selected = Color(uiColor: rgb(0x3A3A3C))
+    static let divider = Color(uiColor: rgb(0x404043))
+    static let border = Color.white.opacity(0.09)
+    static let destructive = Color(uiColor: rgb(0xFF453A))
+    static let tabBar = surface
     static let raisedSurface = surface
+    static let background = canvas
+    static let logoShadow = Color.white.opacity(0.48)
+    static let panelRadius: CGFloat = 24
+    static let compactRadius: CGFloat = 14
+    static let margin: CGFloat = 20
+    static let panelInset: CGFloat = 20
+    static let panelGap: CGFloat = 14
+    static let displayFont = Font.radio(.largeTitle, .heavy)
+    static let sectionFont = Font.radio(.title3, .bold)
 
-    static let background = LinearGradient(
-        stops: [
-            .init(color: Color(uiColor: adaptive(light: 0xE6ECE2, dark: 0x203126)), location: 0),
-            .init(color: canvas, location: 0.38),
-            .init(color: canvas, location: 1)
-        ],
-        startPoint: .top,
-        endPoint: .bottom
-    )
+    static func roundedUIFont(_ size: CGFloat, _ weight: UIFont.Weight) -> UIFont {
+        let font = UIFont.systemFont(ofSize: size, weight: weight)
+        return UIFont(descriptor: font.fontDescriptor.withDesign(.rounded) ?? font.fontDescriptor, size: size)
+    }
+}
 
-    static let playerVeil = LinearGradient(
-        colors: [
-            Color(uiColor: adaptive(light: 0xF5F3EC, dark: 0x07110B)).opacity(0.58),
-            Color(uiColor: adaptive(light: 0xF5F3EC, dark: 0x07110B)).opacity(0.70),
-            Color(uiColor: adaptive(light: 0xF5F3EC, dark: 0x07110B)).opacity(0.90)
-        ],
-        startPoint: .top,
-        endPoint: .bottom
-    )
+extension Font {
+    /// Matches Lineup's current .inter helpers, which use SF Pro Rounded.
+    static func radio(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
+        .system(size: size, weight: weight, design: .rounded)
+    }
 
-    static let logoShadow = Color(uiColor: adaptive(light: 0x233027, dark: 0xDCE8DA)).opacity(0.48)
+    static func radio(_ style: Font.TextStyle, _ weight: Font.Weight? = nil) -> Font {
+        .system(style, design: .rounded, weight: weight ?? (style == .headline ? .semibold : .regular))
+    }
+}
 
-    static let displayFont = Font.system(.largeTitle, design: .serif).weight(.semibold)
-    static let sectionFont = Font.system(.title2, design: .serif).weight(.semibold)
+enum AetherNavigationLayout {
+    // MobileLineupNavigationLayout: 20-point margins, 4-point padding,
+    // 54-point items, and a 20-point physical bottom gap on home-indicator phones.
+    static let sideMargin: CGFloat = 20
+    static let padding: CGFloat = 4
+    static let itemHeight: CGFloat = 54
+    static let navigationHeight: CGFloat = 62
+    static let playerGap: CGFloat = 8
+
+    static func bottomGap(safeAreaBottom: CGFloat) -> CGFloat { safeAreaBottom > 0 ? 20 : 8 }
+
+    static func reservedHeight(hasPlayer: Bool, playerHeight: CGFloat, safeAreaBottom: CGFloat) -> CGFloat {
+        max(0, navigationHeight + bottomGap(safeAreaBottom: safeAreaBottom)
+            + (hasPlayer ? playerHeight + playerGap : 0) - max(0, safeAreaBottom))
+    }
 }

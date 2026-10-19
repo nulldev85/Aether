@@ -1,5 +1,9 @@
 # Aether: shell refresh and car-call recovery
 
+> The visual scope below was superseded by the user's subsequent app-wide
+> Lineup-style request. See `lineup-restyle.md`. The call-recovery implementation
+> is unchanged; its physical-device validation is still pending.
+
 ## Scope
 
 The browsing shell uses warm paper/cream and burnt amber in light mode,

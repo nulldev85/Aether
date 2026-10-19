@@ -8,10 +8,10 @@ struct SearchView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AetherInterface.background.ignoresSafeArea()
+                AetherTheme.background.ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    RadioPageHeading(title: "Search", subtitle: "Find something worth listening to.", eyebrow: "YOUR STATIONS")
+                    RadioPageHeading(title: "Search", subtitle: "Find something worth listening to.")
                         .padding(.horizontal, 20)
                     searchField
                         .padding(.horizontal, 20)
@@ -33,36 +33,35 @@ struct SearchView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
         }
-        .background(AetherInterface.background.ignoresSafeArea())
+        .background(AetherTheme.background.ignoresSafeArea())
     }
 
     private var searchField: some View {
         HStack(spacing: 12) {
             Image(systemName: "magnifyingglass")
-                .foregroundStyle(AetherInterface.accent)
+                .foregroundStyle(AetherTheme.accent)
             TextField("", text: $library.searchQuery,
                       prompt: Text("Station, genre, show or category")
-                        .foregroundStyle(AetherInterface.mutedIcon))
+                        .foregroundStyle(AetherTheme.mutedIcon))
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .submitLabel(.search)
-                .foregroundStyle(AetherInterface.primaryText)
+                .foregroundStyle(AetherTheme.primaryText)
                 .accessibilityIdentifier("search.field")
             if !library.searchQuery.isEmpty {
                 Button {
                     library.searchQuery = ""
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(AetherInterface.mutedIcon)
+                        .foregroundStyle(AetherTheme.mutedIcon)
                 }
                 .accessibilityLabel("Clear search")
             }
         }
-        .font(.body)
+        .font(.radio(.body))
         .padding(.horizontal, 16)
-        .frame(height: 52)
-        .background(AetherInterface.surface, in: RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(AetherInterface.border, lineWidth: 1))
+        .frame(height: 44)
+        .background(AetherTheme.surface, in: Capsule())
     }
 
     @ViewBuilder

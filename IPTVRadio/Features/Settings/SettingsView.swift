@@ -25,17 +25,17 @@ struct SettingsView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 16) {
-                    RadioPageHeading(title: "Settings", subtitle: "Make Aether your own.", eyebrow: "PREFERENCES")
+                    RadioPageHeading(title: "Settings", subtitle: "Make Aether your own.")
                         .padding(.horizontal, 20)
                     categoryBar
                 }
                 .padding(.top, 12)
 
-                AetherInterface.border.opacity(0.65)
+                AetherTheme.border.opacity(0.65)
                     .frame(height: 1)
 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
+                    VStack(alignment: .leading, spacing: AetherTheme.panelGap) {
                         switch selectedCategory {
                         case .account:
                             accountSection
@@ -51,13 +51,13 @@ struct SettingsView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 22)
-                    .padding(.bottom, 32 + flatControlsClearance)
+                    .padding(.bottom, 32)
                 }
                 .scrollIndicators(.hidden)
                 .id(selectedCategory)
             }
-            .background(AetherInterface.background.ignoresSafeArea())
-            .toggleStyle(AetherSettingsToggleStyle())
+            .background(AetherTheme.background.ignoresSafeArea())
+            .toggleStyle(SwitchToggleStyle(tint: AetherTheme.accent))
             .toolbar(.hidden, for: .navigationBar)
             .alert("Sign out?", isPresented: $confirmSignOut) {
                 Button("Sign Out", role: .destructive) {
@@ -80,17 +80,15 @@ struct SettingsView: View {
                     }
                 } label: {
                     Text(category.rawValue)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.radio(15, .bold))
+                        .lineLimit(1).minimumScaleFactor(0.75)
                         .foregroundStyle(selectedCategory == category
-                            ? AetherInterface.accent : AetherInterface.secondaryText)
+                            ? Color.white : AetherTheme.accent)
                         .padding(.vertical, 11)
                         .frame(maxWidth: .infinity)
-                        .overlay(alignment: .bottom) {
-                            Rectangle().fill(AetherInterface.accent)
-                                .frame(height: 2)
-                                .opacity(selectedCategory == category ? 1 : 0)
-                        }
-                        .contentShape(Rectangle())
+                        .background(selectedCategory == category ? AetherTheme.accent : .clear, in: Capsule())
+                        .overlay(Capsule().strokeBorder(selectedCategory == category ? Color.clear : AetherTheme.accent, lineWidth: 1.5))
+                        .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("settings.category.\(category.rawValue.lowercased())")
@@ -101,31 +99,16 @@ struct SettingsView: View {
         .padding(.bottom, 14)
     }
 
-    private var flatControlsClearance: CGFloat {
-        guard !settings.liquidGlassEnabled else { return 0 }
-        return 61 + (playback.state.station == nil ? 0 : 60)
-    }
-
     private var appearanceSection: some View {
         settingsGroup("Appearance", systemImage: "paintbrush.pointed") {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Color mode")
-                    .font(.subheadline.weight(.medium))
-                Picker("Color mode", selection: $settings.appearance) {
-                    Text("Light").tag(SettingsStore.Appearance.light)
-                    Text("Dark").tag(SettingsStore.Appearance.dark)
-                    Text("System").tag(SettingsStore.Appearance.system)
-                }
-                .pickerStyle(.segmented)
-                .accessibilityIdentifier("settings.appearance")
-            }
-            .aetherSettingsRow()
-            settingsFooter("System follows your iPhone's appearance.")
+            LabeledContent("Appearance", value: "Lineup")
+                .aetherSettingsRow()
+            settingsFooter("Lineup's charcoal panels, rounded type and broadcast-red accent throughout Aether.")
             settingsDivider
             Toggle("Liquid Glass navigation", isOn: $settings.liquidGlassEnabled)
                 .accessibilityIdentifier("settings.liquidGlass")
                 .aetherSettingsRow()
-            settingsFooter("Turn off for a flat, full-width tab bar. The change takes effect immediately.")
+            settingsFooter("Turn off for Lineup's compact floating navigation. Liquid Glass is available on iOS 26 and later.")
         }
     }
 
@@ -146,14 +129,14 @@ struct SettingsView: View {
             if let warning = auth.insecureEndpointWarning {
                 Label(warning, systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
-                    .font(.footnote)
+                    .font(.radio(.footnote))
                     .aetherSettingsRow()
             }
             settingsDivider
             Button("Sign Out", role: .destructive) {
                 confirmSignOut = true
             }
-            .foregroundStyle(AetherInterface.destructive)
+            .foregroundStyle(AetherTheme.destructive)
             .accessibilityIdentifier("settings.signOut")
             .aetherSettingsRow()
         }
@@ -171,7 +154,7 @@ struct SettingsView: View {
                         Text("Cellular buffer")
                         Spacer()
                         Text("\(Int(settings.cellularBuffer)) s")
-                            .foregroundStyle(AetherInterface.secondaryText)
+                            .foregroundStyle(AetherTheme.secondaryText)
                     }
                     Slider(value: $settings.cellularBuffer, in: StreamBuffer.cellularRange, step: 1)
                 }
@@ -188,7 +171,7 @@ struct SettingsView: View {
                         Text("Stream timeout")
                         Spacer()
                         Text("\(Int(settings.streamTimeout)) s")
-                            .foregroundStyle(AetherInterface.secondaryText)
+                            .foregroundStyle(AetherTheme.secondaryText)
                     }
                     Slider(value: $settings.streamTimeout, in: 5...60, step: 1)
                 }
@@ -202,7 +185,7 @@ struct SettingsView: View {
                         Text("Auto-retry attempts")
                         Spacer()
                         Text("\(settings.retryLimit)")
-                            .foregroundStyle(AetherInterface.secondaryText)
+                            .foregroundStyle(AetherTheme.secondaryText)
                     }
                     Slider(value: Binding(
                         get: { Double(settings.retryLimit) },
@@ -319,36 +302,27 @@ struct SettingsView: View {
         @ViewBuilder content: () -> Content
     ) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 12) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(AetherInterface.accent)
-                    .frame(width: 28, height: 28)
-                Text(title)
-                    .font(AetherInterface.sectionFont)
-                    .foregroundStyle(AetherInterface.primaryText)
-            }
-            .padding(.bottom, 10)
-
+            AetherPanelHeader(title: title, symbol: systemImage)
+            AetherTheme.divider.frame(height: 1).padding(.bottom, 16)
             content()
+                .padding(.bottom, 18)
         }
-        .foregroundStyle(AetherInterface.secondaryText)
-        .tint(AetherInterface.accent)
+        .foregroundStyle(AetherTheme.primaryText)
+        .tint(AetherTheme.accent)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(AetherInterface.surface, in: RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(AetherInterface.border, lineWidth: 0.5))
+        .padding(.horizontal, AetherTheme.panelInset)
+        .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: AetherTheme.panelRadius, style: .continuous))
     }
 
     private var settingsDivider: some View {
-        AetherInterface.border.opacity(0.55)
+        AetherTheme.divider
             .frame(height: 1)
     }
 
     private func settingsFooter(_ message: String) -> some View {
         Text(message)
-            .font(.footnote)
-            .foregroundStyle(AetherInterface.secondaryText)
+            .font(.radio(13))
+            .foregroundStyle(AetherTheme.mutedIcon)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.top, 8)
     }
@@ -358,10 +332,10 @@ struct SettingsView: View {
             Text(title)
             Spacer()
             Image(systemName: "chevron.right")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AetherInterface.mutedIcon)
+                .font(.radio(.subheadline, .semibold))
+                .foregroundStyle(AetherTheme.mutedIcon)
         }
-        .foregroundStyle(AetherInterface.secondaryText)
+        .foregroundStyle(AetherTheme.primaryText)
     }
 
     private var cacheSize: Int {
@@ -382,40 +356,7 @@ struct SettingsView: View {
 
 private extension View {
     func aetherSettingsRow() -> some View {
-        frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-            .padding(.vertical, 6)
-    }
-}
-
-/// A quiet amber track with a solid thumb follows the browsing palette.
-private struct AetherSettingsToggleStyle: ToggleStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.18)) {
-                configuration.isOn.toggle()
-            }
-        } label: {
-            HStack(spacing: 12) {
-                configuration.label
-                Spacer(minLength: 8)
-                Capsule()
-                    .fill(configuration.isOn ? AetherInterface.accentSoft : AetherInterface.border.opacity(0.7))
-                    .frame(width: 54, height: 30)
-                    .overlay {
-                        Capsule()
-                            .strokeBorder(AetherInterface.accent.opacity(configuration.isOn ? 0.45 : 0.18), lineWidth: 1)
-                    }
-                    .overlay(alignment: configuration.isOn ? .trailing : .leading) {
-                        Circle()
-                            .fill(configuration.isOn ? AetherInterface.accent : AetherInterface.mutedIcon)
-                            .frame(width: 26, height: 26)
-                            .padding(2)
-                    }
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityValue(configuration.isOn ? "On" : "Off")
+        frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
     }
 }
 
@@ -492,8 +433,7 @@ struct DetectionRulesEditorView: View {
                 }
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(AetherInterface.background.ignoresSafeArea())
+        .radioSettingsList()
         .navigationTitle("Detection rules")
         .onAppear { loadFields() }
         .onDisappear { saveFields() }
@@ -528,39 +468,39 @@ struct PrivacyNoticeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Image(systemName: "lock.shield")
-                    .font(.system(size: 40))
+                    .font(.radio(40))
                     .foregroundStyle(Color.accentColor)
 
                 Text("Privacy & Authorization")
-                    .font(.title2.weight(.semibold))
+                    .font(.radio(.title2, .semibold))
 
                 Text("Authorization requirement")
-                    .font(.headline)
+                    .font(.radio(.headline))
                 Text("You must hold valid authorization to access any provider streams you configure. Aether also lets you explore publicly listed radio streams in Aether Dial. Stations are operated by third parties and may change or restrict access. The app does not bundle or redistribute their audio, or bypass DRM, authentication, geographic restrictions, or provider limitations.")
-                    .font(.subheadline)
-                    .foregroundStyle(AetherInterface.secondaryText)
+                    .font(.radio(.subheadline))
+                    .foregroundStyle(AetherTheme.secondaryText)
 
                 Text("Your data")
-                    .font(.headline)
+                    .font(.radio(.headline))
                 Text("Credentials (server URL, username, password or playlist URL) are stored exclusively in the iOS Keychain. Station lists and preferences stay on your device. Aether Dial sends the place, genre, and station name you search for to Radio Browser, and a station ID when you listen from the directory. It does not send your provider credentials or private stream URLs there.")
-                    .font(.subheadline)
-                    .foregroundStyle(AetherInterface.secondaryText)
+                    .font(.radio(.subheadline))
+                    .foregroundStyle(AetherTheme.secondaryText)
 
                 Text("No tracking")
-                    .font(.headline)
+                    .font(.radio(.headline))
                 Text("This app contains no analytics, advertising, or third-party tracking SDKs. Logs are scrubbed of usernames, passwords and credential-bearing URLs.")
-                    .font(.subheadline)
-                    .foregroundStyle(AetherInterface.secondaryText)
+                    .font(.radio(.subheadline))
+                    .foregroundStyle(AetherTheme.secondaryText)
 
                 Text("Secure connections")
-                    .font(.headline)
+                    .font(.radio(.headline))
                 Text("HTTPS is preferred. If your provider only offers an unencrypted HTTP endpoint, the app clearly warns you before you continue. Because providers differ, connections to provider-supplied HTTP endpoints (including artwork servers) are allowed; the app still warns you whenever an insecure portal is detected.")
-                    .font(.subheadline)
-                    .foregroundStyle(AetherInterface.secondaryText)
+                    .font(.radio(.subheadline))
+                    .foregroundStyle(AetherTheme.secondaryText)
             }
             .padding()
         }
-        .background(AetherInterface.background.ignoresSafeArea())
+        .background(AetherTheme.background.ignoresSafeArea())
         .navigationTitle("Privacy")
         .navigationBarTitleDisplayMode(.inline)
     }

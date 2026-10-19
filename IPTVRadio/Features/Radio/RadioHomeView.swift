@@ -18,7 +18,7 @@ struct RadioHomeView: View {
             }
             .navigationTitle("SXM")
             .navigationBarTitleDisplayMode(.inline)
-            .background(AetherInterface.background.ignoresSafeArea())
+            .background(AetherTheme.background.ignoresSafeArea())
             .refreshable {
                 await library.refresh()
             }
@@ -29,7 +29,7 @@ struct RadioHomeView: View {
                             AllStationsView(title: "SiriusXM Stations", stations: library.siriusStations)
                         } label: {
                             Text("All \(library.siriusStations.count)")
-                                .font(.subheadline.weight(.semibold))
+                                .font(.radio(.subheadline, .semibold))
                         }
                         .accessibilityIdentifier("radio.seeAll")
                     }
@@ -53,7 +53,7 @@ struct RadioHomeView: View {
         }
         return AnyView(
             List {
-                RadioPageHeading(title: "SiriusXM", subtitle: "\(stations.count) channels from your provider.", eyebrow: "YOUR LINEUP")
+                RadioPageHeading(title: "SiriusXM", subtitle: "\(stations.count) channels from your provider.")
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                 ForEach(stations) { station in
@@ -79,7 +79,7 @@ struct AllStationsView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(AetherInterface.canvas)
+        .background(AetherTheme.canvas)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
     }

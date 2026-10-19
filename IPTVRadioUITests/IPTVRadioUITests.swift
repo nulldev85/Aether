@@ -167,18 +167,24 @@ final class IPTVRadioUITests: XCTestCase {
         app.buttons["Settings"].tap()
         XCTAssertTrue(app.buttons["settings.category.account"].waitForExistence(timeout: 8),
                       "Tab bar must remain reachable during playback")
-        capture(app, name: "Shell — Settings with unchanged mini player")
+        capture(app, name: "Lineup style — Settings with vinyl mini player")
         app.buttons["SXM"].tap()
         XCTAssertTrue(app.buttons["miniplayer.open"].waitForExistence(timeout: 8))
 
         let miniPlayer = app.buttons["miniplayer.open"].firstMatch
         miniPlayer.tap()
-        XCTAssertFalse(app.buttons["nowplaying.close"].exists)
+        XCTAssertTrue(app.buttons["nowplaying.close"].waitForExistence(timeout: 8))
         XCTAssertTrue(app.descendants(matching: .any)
             .matching(identifier: "nowplaying.vinyl").firstMatch.waitForExistence(timeout: 8))
         XCTAssertTrue(app.buttons["nowplaying.stop"].exists)
         XCTAssertTrue(app.buttons["nowplaying.sleepTimer"].exists)
-        capture(app, name: "Unchanged — Now Playing")
+        capture(app, name: "Lineup style — Now Playing with preserved vinyl")
+
+        app.buttons["nowplaying.close"].tap()
+        XCTAssertTrue(app.buttons["miniplayer.open"].waitForExistence(timeout: 8),
+                      "Closing the restyled player must retain playback and the vinyl mini player")
+        app.buttons["miniplayer.open"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["nowplaying.close"].waitForExistence(timeout: 8))
 
         // Switching stations repeatedly works without leaving the player.
         app.buttons["nowplaying.next"].tap()
@@ -213,7 +219,7 @@ final class IPTVRadioUITests: XCTestCase {
 
         let flatFavorites = app.buttons["tab.favorites"]
         if !flatFavorites.waitForExistence(timeout: 8) {
-            XCTFail("Flat tab bar did not appear after switching modes. Hierarchy:\n\(app.debugDescription)")
+            XCTFail("Lineup floating navigation did not appear after switching modes. Hierarchy:\n\(app.debugDescription)")
         }
         XCTAssertTrue(app.buttons["miniplayer.open"].exists)
         flatFavorites.tap()
@@ -242,5 +248,26 @@ final class IPTVRadioUITests: XCTestCase {
         app.buttons["settings.category.app"].tap()
         XCTAssertTrue(app.descendants(matching: .any)
             .matching(identifier: "settings.liquidGlass").firstMatch.waitForExistence(timeout: 8))
+    }
+
+    func testLineupFloatingControlsLeaveStationNavigationAndStopReachable() throws {
+        let app = launch(scenario: "UITestNowPlaying")
+        let first = app.buttons["tab.radio"]
+        let last = app.buttons["tab.settings"]
+        XCTAssertTrue(first.waitForExistence(timeout: 8))
+        XCTAssertTrue(last.isHittable)
+        let mini = app.buttons["miniplayer.open"].firstMatch
+        XCTAssertTrue(mini.waitForExistence(timeout: 8))
+        XCTAssertLessThanOrEqual(mini.frame.maxY, first.frame.minY,
+                                 "Vinyl mini player must not cover the floating navigation")
+        XCTAssertGreaterThanOrEqual(first.frame.minX, app.frame.minX + 20)
+        XCTAssertLessThanOrEqual(last.frame.maxX, app.frame.maxX - 20)
+        app.buttons["tab.favorites"].tap()
+        XCTAssertTrue(app.navigationBars["Favorites"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["miniplayer.stop"].isHittable)
+        capture(app, name: "Lineup style — compact controls and station clearance")
+        app.buttons["miniplayer.stop"].tap()
+        XCTAssertTrue(mini.waitForNonExistence(timeout: 8))
+        XCTAssertTrue(last.isHittable)
     }
 }

@@ -1,0 +1,33 @@
+{
+  "repository": "nulldev85/NullSports",
+  "commit": "97ce5e768b4f33f3271e9f2c27eec2beda93ab3f",
+  "sources": [
+    "Lineup/Design/LineupStyle.swift",
+    "Lineup/Design/LineupFont.swift",
+    "Lineup/Design/LineupAccent.swift",
+    "Lineup/LineupApp.swift",
+    "iPhone/MobileNavigationStyle.swift",
+    "iPhone/MobileViews.swift"
+  ],
+  "palette": {
+    "uiCanvas": "1C1C1E",
+    "uiNavigationSurface": "2C2C2E",
+    "uiPrimaryText": "FFFFFF",
+    "uiMutedIcon": "9E9EA5",
+    "uiAccent": "FF3347",
+    "selected": "3A3A3C",
+    "divider": "404043",
+    "caption": "CCCCCC",
+    "accentSoft": "FF8F9A"
+  },
+  "panelRadius": 24,
+  "compactRadius": 14,
+  "panelInset": 20,
+  "panelGap": 14,
+  "sideMargin": 20,
+  "padding": 4,
+  "itemHeight": 54,
+  "font": "SF Pro Rounded",
+  "appearance": "dark",
+  "preservedPlaybackDigest": "772f87c4becca80e30f897de6b3670e2245c7fb4a4ca7422f973f05683081f9e"
+}

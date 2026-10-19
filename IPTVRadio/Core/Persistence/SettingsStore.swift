@@ -66,6 +66,8 @@ final class SettingsStore: ObservableObject {
     @Published var lookupSongArtwork: Bool {
         didSet { defaults.set(lookupSongArtwork, forKey: Keys.lookupSongArtwork) }
     }
+    /// Legacy preference retained for data compatibility. Lineup's requested
+    /// fixed-dark design no longer offers a light/system palette selector.
     @Published var appearance: Appearance {
         didSet { defaults.set(appearance.rawValue, forKey: Keys.appearance) }
     }
@@ -95,7 +97,7 @@ final class SettingsStore: ObservableObject {
         preferAudioOnlyRendition = defaults.object(forKey: Keys.preferAudioOnlyRendition) as? Bool ?? true
         lookupSongArtwork = defaults.object(forKey: Keys.lookupSongArtwork) as? Bool ?? true
         appearance = Appearance(rawValue: defaults.string(forKey: Keys.appearance) ?? "") ?? .light
-        liquidGlassEnabled = defaults.object(forKey: Keys.liquidGlassEnabled) as? Bool ?? true
+        liquidGlassEnabled = defaults.object(forKey: Keys.liquidGlassEnabled) as? Bool ?? false
         sonosOutputControl = defaults.object(forKey: Keys.sonosOutputControl) as? Bool ?? true
         bluetoothOutputControl = defaults.object(forKey: Keys.bluetoothOutputControl) as? Bool ?? true
 

@@ -2,133 +2,134 @@ import SwiftUI
 import AVKit
 import MediaPlayer
 
-/// Full now-playing screen: artwork, controls, sleep timer, route picker.
+/// Lineup's neutral panels and rounded controls around Aether's original disc.
 struct NowPlayingView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var playback: PlaybackEngine
     @EnvironmentObject private var settings: SettingsStore
-
     @State private var showSleepTimerSheet = false
-    /// Channel logo, used as the backdrop when there is no song artwork.
     @State private var stationLogo: UIImage?
 
     var body: some View {
-        Group {
-            if let station = playback.state.station {
-                content(for: station)
-            } else {
-                VStack(spacing: 12) {
-                    Text("Nothing playing")
-                        .font(.headline)
-                        .foregroundStyle(AetherTheme.primaryText)
-                    Text("Pick a station to start listening.")
-                        .font(.subheadline)
-                        .foregroundStyle(AetherTheme.secondaryText)
+        GeometryReader { proxy in
+            VStack(spacing: 0) {
+                header
+                if let station = playback.state.station {
+                    ScrollView {
+                        VStack(spacing: 24) {
+                            VinylRecordView(
+                                artwork: playback.nowPlayingMetadata?.artworkImage ?? stationLogo,
+                                isSpinning: playback.state.isPlaying && scenePhase == .active && !reduceMotion
+                            )
+                            .frame(width: recordSize(in: proxy.size), height: recordSize(in: proxy.size))
+                            .padding(.top, 12)
+
+                            trackDetails(for: station)
+                            VStack(spacing: 20) {
+                                controlRow
+                                outputControls
+                            }
+                            .padding(20)
+                            .frame(maxWidth: 440)
+                            .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: AetherTheme.panelRadius, style: .continuous))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, AetherTheme.margin)
+                        .padding(.bottom, 32)
+                    }
+                    .scrollIndicators(.hidden)
+                    .task(id: station.id) {
+                        stationLogo = nil
+                        guard let url = station.logoURL else { return }
+                        stationLogo = await ArtworkCache.shared.image(for: url)
+                    }
+                } else {
+                    EmptyStateView(title: "Nothing playing", message: "Pick a station to start listening.", systemImage: "music.note")
+                        .frame(maxHeight: .infinity)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .foregroundStyle(AetherTheme.primaryText)
-        .presentationDragIndicator(.visible)
         .background(AetherTheme.background.ignoresSafeArea())
+        .presentationDragIndicator(.visible)
+        .sheet(isPresented: $showSleepTimerSheet) { SleepTimerSheet() }
     }
 
-    private func content(for station: RadioStation) -> some View {
-        GeometryReader { proxy in
-            VStack(spacing: 0) {
-                Spacer(minLength: 20)
-
-                VinylRecordView(
-                    artwork: playback.nowPlayingMetadata?.artworkImage ?? stationLogo,
-                    isSpinning: playback.state.isPlaying && scenePhase == .active && !reduceMotion
-                )
-                .frame(width: recordSize(in: proxy.size), height: recordSize(in: proxy.size))
-                .shadow(color: .black.opacity(0.6), radius: 28, y: 18)
-
-                Spacer(minLength: 24)
-
-                if let metadata = playback.nowPlayingMetadata,
-                   metadata.title != nil || metadata.artist != nil {
-                    VStack(spacing: 4) {
-                        if let title = metadata.title {
-                            Text(title)
-                                .font(AetherTheme.sectionFont)
-                                .multilineTextAlignment(.center)
-                                .accessibilityIdentifier("nowplaying.songTitle")
-                        }
-                        if let artist = metadata.artist {
-                            Text(artist)
-                                .font(.subheadline)
-                                .foregroundStyle(AetherTheme.secondaryText)
-                                .multilineTextAlignment(.center)
-                                .accessibilityIdentifier("nowplaying.artist")
-                        }
-                    }
-                    .accessibilityIdentifier("nowplaying.song")
-                }
-
-                Spacer(minLength: 20)
-
-                controlRow
-
-                HStack(spacing: 28) {
-                    SleepTimerButton(showSheet: $showSleepTimerSheet)
-                        .frame(width: 44, height: 44)
-                    if settings.sonosOutputControl {
-                        RoutePickerButton()
-                            .frame(width: 44, height: 44)
-                    } else if settings.bluetoothOutputControl {
-                        BluetoothRoutePickerButton()
-                            .frame(width: 44, height: 44)
-                    }
-                    Button {
-                        playback.retry()
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.title3)
-                            .frame(width: 44, height: 44)
-                    }
-                    .accessibilityLabel("Retry connection")
-                    .accessibilityIdentifier("nowplaying.retry")
-                }
-                .frame(maxWidth: .infinity)
-                .foregroundStyle(AetherTheme.mutedIcon)
-                .padding(.top, 20)
-                .padding(.bottom, 24)
+    private var header: some View {
+        HStack(spacing: 10) {
+            AetherIconTile(symbol: "music.note")
+            Text("Now Playing").font(.radio(17, .heavy))
+            Spacer()
+            Button { dismiss() } label: {
+                Image(systemName: "xmark").frame(width: 16, height: 20)
             }
-            .padding(.horizontal, 24)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(NowPlayingBackdrop(
-                artwork: playback.nowPlayingMetadata?.artworkImage,
-                logo: stationLogo
-            ))
+            .buttonStyle(AetherBarButtonStyle())
+            .accessibilityLabel("Close now playing")
+            .accessibilityIdentifier("nowplaying.close")
         }
-        .sheet(isPresented: $showSleepTimerSheet) {
-            SleepTimerSheet()
+        .padding(.horizontal, AetherTheme.margin)
+        .padding(.top, 24).padding(.bottom, 16)
+    }
+
+    private func trackDetails(for station: RadioStation) -> some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 6) {
+                Circle().fill(playback.state.isPlaying ? AetherTheme.accent : AetherTheme.mutedIcon)
+                    .frame(width: 6, height: 6)
+                Text(status).font(.radio(12, .bold)).tracking(0.6)
+            }
+            .foregroundStyle(AetherTheme.caption)
+            .accessibilityIdentifier("nowplaying.status")
+
+            if let metadata = playback.nowPlayingMetadata,
+               metadata.title != nil || metadata.artist != nil {
+                if let title = metadata.title {
+                    Text(title).font(.radio(.title2, .bold))
+                        .accessibilityIdentifier("nowplaying.songTitle")
+                }
+                if let artist = metadata.artist {
+                    Text(artist).font(.radio(.subheadline))
+                        .foregroundStyle(AetherTheme.secondaryText)
+                        .accessibilityIdentifier("nowplaying.artist")
+                }
+                Text(station.name).font(.radio(.caption, .medium))
+                    .foregroundStyle(AetherTheme.mutedIcon)
+                    .accessibilityIdentifier("nowplaying.station")
+            } else {
+                Text(station.name).font(.radio(.title2, .bold))
+                    .accessibilityIdentifier("nowplaying.station")
+                if !station.groupTitle.isEmpty {
+                    Text(station.groupTitle).font(.radio(.subheadline))
+                        .foregroundStyle(AetherTheme.secondaryText)
+                }
+            }
         }
-        .task(id: station.id) {
-            // The channel logo backs the screen when the stream carries no
-            // song artwork.
-            stationLogo = nil
-            guard let url = station.logoURL else { return }
-            stationLogo = await ArtworkCache.shared.image(for: url)
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: 440)
+    }
+
+    private var status: String {
+        switch playback.state {
+        case .playing: return "LIVE RADIO"
+        case .loading: return "CONNECTING"
+        case .paused: return "PAUSED"
+        case .failed: return "CONNECTION FAILED"
+        default: return "STOPPED"
         }
     }
 
     private func recordSize(in size: CGSize) -> CGFloat {
-        min(size.width - 80, size.height * 0.44)
+        max(120, min(size.width - 80, size.height * 0.38))
     }
 
     private var controlRow: some View {
-        HStack(spacing: 28) {
-            Button {
-                playback.previousStation()
-            } label: {
-                Image(systemName: "backward.end.fill")
-                    .font(.title2)
-                    .frame(width: 56, height: 88)
+        HStack(spacing: 24) {
+            Button { playback.previousStation() } label: {
+                Image(systemName: "backward.end.fill").font(.radio(22, .semibold))
+                    .frame(width: 52, height: 52)
+                    .background(AetherTheme.selected, in: Circle())
             }
             .accessibilityLabel("Previous station")
             .accessibilityIdentifier("nowplaying.previous")
@@ -141,24 +142,44 @@ struct NowPlayingView: View {
                     playback.togglePlayPause()
                 }
             } label: {
-                Image(systemName: mainButtonIcon)
-                    .font(.system(size: 44))
-                    .foregroundStyle(AetherTheme.accent)
-                    .frame(width: 88, height: 88)
+                Image(systemName: mainButtonIcon).font(.radio(28, .semibold))
+                    .frame(width: 76, height: 76)
+                    .foregroundStyle(.white)
+                    .background(AetherTheme.accent, in: Circle())
             }
             .accessibilityLabel(mainButtonLabel)
             .accessibilityIdentifier(mainButtonIsStop ? "nowplaying.stop" : "nowplaying.toggle")
 
-            Button {
-                playback.nextStation()
-            } label: {
-                Image(systemName: "forward.end.fill")
-                    .font(.title2)
-                    .frame(width: 56, height: 88)
+            Button { playback.nextStation() } label: {
+                Image(systemName: "forward.end.fill").font(.radio(22, .semibold))
+                    .frame(width: 52, height: 52)
+                    .background(AetherTheme.selected, in: Circle())
             }
             .accessibilityLabel("Next station")
             .accessibilityIdentifier("nowplaying.next")
         }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var outputControls: some View {
+        HStack(spacing: 24) {
+            SleepTimerButton(showSheet: $showSleepTimerSheet)
+                .frame(width: 44, height: 44)
+            if settings.sonosOutputControl {
+                RoutePickerButton().frame(width: 44, height: 44)
+            } else if settings.bluetoothOutputControl {
+                BluetoothRoutePickerButton().frame(width: 44, height: 44)
+            }
+            Button { playback.retry() } label: {
+                Image(systemName: "arrow.clockwise").font(.radio(19, .semibold))
+                    .frame(width: 44, height: 44)
+            }
+            .accessibilityLabel("Retry connection")
+            .accessibilityIdentifier("nowplaying.retry")
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(AetherTheme.caption)
         .frame(maxWidth: .infinity)
     }
 
@@ -169,54 +190,19 @@ struct NowPlayingView: View {
         default: return "play.fill"
         }
     }
-
     private var mainButtonLabel: String {
         switch playback.state {
         case .playing, .loading: return "Stop"
         case .failed: return "Retry"
-        case .paused: return "Play"
         default: return "Play"
         }
     }
-
     private var mainButtonIsStop: Bool {
         switch playback.state {
         case .playing, .loading: return true
         default: return false
         }
     }
-
-}
-
-/// Cover art supplies atmosphere behind the record without competing with its
-/// grooves, song text, or controls. A channel logo is the fallback artwork.
-private struct NowPlayingBackdrop: View {
-    let artwork: UIImage?
-    let logo: UIImage?
-
-    var body: some View {
-        GeometryReader { proxy in
-            ZStack {
-                AetherTheme.background
-
-                if let image = artwork ?? logo {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: proxy.size.width, height: proxy.size.height)
-                        .clipped()
-                        .blur(radius: 38)
-                        .overlay {
-                            AetherTheme.playerVeil
-                        }
-                }
-            }
-            .frame(width: proxy.size.width, height: proxy.size.height)
-            .clipped()
-        }
-        .ignoresSafeArea()
-    }
-
 }
 
 /// Sleep timer trigger button with active-timer indicator.
@@ -229,7 +215,7 @@ struct SleepTimerButton: View {
             showSheet = true
         } label: {
             Image(systemName: playback.sleepTimerDeadline == nil ? "moon.zzz" : "moon.zzz.fill")
-                .font(.title3)
+                .font(.radio(.title3))
         }
         .accessibilityLabel("Sleep timer")
         .accessibilityIdentifier("nowplaying.sleepTimer")
@@ -308,17 +294,18 @@ struct SleepTimerSheet: View {
                     }
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(AetherTheme.background.ignoresSafeArea())
+            .radioSettingsList()
             .navigationTitle("Sleep Timer")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
+                        .buttonStyle(AetherBarButtonStyle(prominent: true))
                 }
             }
         }
         .presentationDetents([.medium])
+        .presentationBackground(AetherTheme.background)
         .tint(AetherTheme.accent)
     }
 }

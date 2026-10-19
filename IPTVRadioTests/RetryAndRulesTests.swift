@@ -57,10 +57,12 @@ final class DetectionRulesCodableTests: XCTestCase {
     }
 
     @MainActor
-    func testLiquidGlassPreferenceDefaultsOnAndPersists() {
+    func testLineupFloatingNavigationIsDefaultAndGlassChoicePersists() {
         let defaults = makeIsolatedDefaults()
         let store = SettingsStore(defaults: defaults)
-        XCTAssertTrue(store.liquidGlassEnabled)
+        XCTAssertFalse(store.liquidGlassEnabled)
+        store.liquidGlassEnabled = true
+        XCTAssertTrue(SettingsStore(defaults: defaults).liquidGlassEnabled)
         store.liquidGlassEnabled = false
         XCTAssertFalse(SettingsStore(defaults: defaults).liquidGlassEnabled)
     }

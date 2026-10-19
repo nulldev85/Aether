@@ -49,7 +49,7 @@ struct ManualRadioView: View {
                             .swipeActions(edge: .trailing) {
                                 Button("Delete", role: .destructive) { delete(entry) }
                                 Button("Edit") { editor = EditorTarget(entry: entry) }
-                                    .tint(AetherInterface.accent)
+                                    .tint(AetherTheme.accent)
                             }
                             .contextMenu {
                                 Button {
@@ -71,7 +71,7 @@ struct ManualRadioView: View {
             }
             .navigationTitle("Radio")
             .navigationBarTitleDisplayMode(.inline)
-            .background(AetherInterface.background.ignoresSafeArea())
+            .background(AetherTheme.background.ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
@@ -81,7 +81,7 @@ struct ManualRadioView: View {
                             Image(systemName: "safari")
                             Text("Dial")
                         }
-                        .font(.subheadline.weight(.semibold))
+                        .font(.radio(.subheadline, .semibold))
                     }
                     .accessibilityLabel("Aether Dial")
                     .accessibilityIdentifier("manual.dial")
@@ -96,7 +96,7 @@ struct ManualRadioView: View {
                                     Text("Done")
                                 } else {
                                     Image(systemName: "arrow.up.arrow.down")
-                                        .foregroundStyle(AetherInterface.mutedIcon)
+                                        .foregroundStyle(AetherTheme.mutedIcon)
                                 }
                             }
                             .accessibilityLabel(isReordering ? "Done reordering" : "Reorder stations")
@@ -106,7 +106,7 @@ struct ManualRadioView: View {
                             editor = EditorTarget()
                         } label: {
                             Image(systemName: "plus")
-                                .foregroundStyle(AetherInterface.mutedIcon)
+                                .foregroundStyle(AetherTheme.mutedIcon)
                         }
                         .accessibilityLabel("Add station")
                         .accessibilityIdentifier("manual.add")
@@ -138,37 +138,35 @@ struct ManualRadioView: View {
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 14) {
             RadioPageHeading(title: "Radio", subtitle: "A place for your own stations.")
-            Image(systemName: "antenna.radiowaves.left.and.right")
-                .font(.system(size: 32, weight: .light))
-                .foregroundStyle(AetherInterface.accent)
+            AetherIconTile(symbol: "antenna.radiowaves.left.and.right", size: 64)
             Text("Your Radio stations")
-                .font(AetherInterface.sectionFont)
+                .font(.radio(20, .bold))
             Text("Add a stream link or find a station in Aether Dial. MP3, AAC, HLS, M3U and PLS links are supported.")
-                .font(.subheadline)
-                .foregroundStyle(AetherInterface.secondaryText)
+                .font(.radio(.subheadline))
+                .foregroundStyle(AetherTheme.secondaryText)
                 .multilineTextAlignment(.leading)
             Button {
                 editor = EditorTarget()
             } label: {
                 Label("Add Station", systemImage: "plus")
-                    .font(.headline)
+                    .font(.radio(.headline))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(AetherInterface.accent)
+            .buttonStyle(AetherButtonStyle(prominent: true))
+            .tint(AetherTheme.accent)
             .accessibilityIdentifier("manual.addEmpty")
             .padding(.top, 8)
             Button {
                 showDial = true
             } label: {
                 Label("Explore Aether Dial", systemImage: "safari")
-                    .font(.headline)
+                    .font(.radio(.headline))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
             }
-            .buttonStyle(.bordered)
-            .tint(AetherInterface.accent)
+            .buttonStyle(AetherButtonStyle())
+            .tint(AetherTheme.accent)
             .accessibilityIdentifier("manual.dialEmpty")
         }
         .padding(24)
@@ -236,35 +234,36 @@ private struct ManualStationEditorView: View {
                         .autocorrectionDisabled()
                         .accessibilityIdentifier("manual.artwork")
                     Text("We'll look for the station logo automatically. Paste a logo URL to choose your own.")
-                        .font(.caption)
-                        .foregroundStyle(AetherInterface.secondaryText)
+                        .font(.radio(.caption))
+                        .foregroundStyle(AetherTheme.secondaryText)
                 }
                 if let errorMessage {
                     Section {
                         Label(errorMessage, systemImage: "exclamationmark.circle")
-                            .foregroundStyle(AetherInterface.destructive)
+                            .foregroundStyle(AetherTheme.destructive)
                             .accessibilityIdentifier("manual.error")
                     }
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(AetherInterface.background.ignoresSafeArea())
+            .radioSettingsList()
             .navigationTitle(entry == nil ? "Add Station" : "Edit Station")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
+                        .buttonStyle(AetherBarButtonStyle())
                         .disabled(isSaving)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Save") { save() }
+                        .buttonStyle(AetherBarButtonStyle(prominent: true))
                         .fontWeight(.semibold)
                         .disabled(isSaving)
                         .accessibilityIdentifier("manual.save")
                 }
             }
         }
-        .tint(AetherInterface.accent)
+        .tint(AetherTheme.accent)
     }
 
     private func save() {

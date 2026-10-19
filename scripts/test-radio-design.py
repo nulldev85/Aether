@@ -1,18 +1,14 @@
-"""Offline checks for the shell refresh's explicit preservation boundaries."""
+"""Lineup-reference checks for Aether's app-wide restyle; no live repository needed."""
 import ast
 import hashlib
+import json
 from pathlib import Path
 import re
+import struct
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-FROZEN_PLAYER = {
-    "IPTVRadio/App/AetherTheme.swift": "e2a2549eea31303d23648d424224893f11cb9cfd7b5510586a54e1124e080b7e",
-    "IPTVRadio/Features/NowPlaying/MiniPlayerView.swift": "6dde5b0af0c9cf979bba9f8752dd247319ae79fb8603c9c61832d55cd696d1b5",
-    "IPTVRadio/Features/NowPlaying/NowPlayingView.swift": "3243456e224eb3f1826da0cc18cb4798eaeff5e9cd8b695f9340ffe60b130a36",
-    "IPTVRadio/Features/NowPlaying/VinylRecordView.swift": "29e632406d2372b4ade4a9ff63114ce994604378272df11d6350a5f626b15329",
-    "IPTVRadio/Assets.xcassets/AccentColor.colorset/Contents.json": "81a6af3c3371414995da62113f5816aaeaac912c35f3e29c3e805bc794ed6db9",
-}
+REFERENCE = json.loads((ROOT / "docs/lineup-style-reference.json").read_text(encoding="utf-8"))
 
 
 def luminance(value):
@@ -26,54 +22,93 @@ def contrast(first, second):
     return (hi + 0.05) / (lo + 0.05)
 
 
+def source(relative):
+    return (ROOT / relative).read_text(encoding="utf-8")
+
+
 class RadioDesignTests(unittest.TestCase):
     def setUp(self):
-        self.theme = (ROOT / "IPTVRadio/App/AetherInterface.swift").read_text(encoding="utf-8")
-        self.colors = {name: (int(light, 16), int(dark, 16)) for name, light, dark in re.findall(
-            r"static let (\w+) = (?:Color\(uiColor: )?adaptive\(light: 0x([0-9A-F]+), dark: 0x([0-9A-F]+)", self.theme)}
+        self.theme = source("IPTVRadio/App/AetherTheme.swift")
 
-    def test_player_views_palette_and_global_accent_are_unchanged(self):
-        for relative, expected in FROZEN_PLAYER.items():
-            with self.subTest(file=relative):
-                actual = hashlib.sha256((ROOT / relative).read_text(encoding="utf-8").encode()).hexdigest()
-                self.assertEqual(actual, expected, "User explicitly excluded now-playing from the redesign")
+    def test_exact_lineup_palette_and_dimensions(self):
+        self.assertIn(REFERENCE["commit"], self.theme)
+        for name, color in REFERENCE["palette"].items():
+            with self.subTest(color=name):
+                self.assertRegex(self.theme, rf"static let {name} = (?:Color\(uiColor: )?rgb\(0x{color}\)")
+        for name in ("panelRadius", "compactRadius", "panelInset", "panelGap", "sideMargin", "padding", "itemHeight"):
+            self.assertRegex(self.theme, rf"static let {name}: CGFloat = {REFERENCE[name]}\b")
 
-    def test_icon_changes_are_color_literals_only(self):
-        tree = ast.parse((ROOT / "scripts/generate-aether-icon.py").read_text(encoding="utf-8"))
+    def test_entire_app_uses_one_dark_rounded_theme(self):
+        app = source("IPTVRadio/IPTVRadioApp.swift")
+        self.assertIn(".preferredColorScheme(.dark)", app)
+        self.assertIn(".fontDesign(.rounded)", app)
+        self.assertIn(".environment(\\.font, .radio(.body))", app)
+        self.assertIn("design: .rounded", self.theme)
+        self.assertNotIn("adaptive(", self.theme)
+        self.assertNotIn("LinearGradient(", self.theme)
+        self.assertFalse((ROOT / "IPTVRadio/App/AetherInterface.swift").exists())
+        for path in (ROOT / "IPTVRadio/Features").rglob("*.swift"):
+            text = path.read_text(encoding="utf-8")
+            self.assertNotIn("AetherInterface.", text)
+            self.assertNotIn("design: .serif", text)
+
+    def test_body_and_quiet_text_have_readable_contrast_on_lineup_panels(self):
+        for background in (0x1C1C1E, 0x2C2C2E):
+            for foreground in (0xFFFFFF, 0xCCCCCC, 0x9E9EA5):
+                with self.subTest(background=background, foreground=foreground):
+                    self.assertGreaterEqual(contrast(foreground, background), 4.5)
+
+    def test_reference_accent_has_nontext_control_contrast(self):
+        # Exact Lineup broadcast red, not an invented replacement. This check
+        # does not claim every small white-on-red label meets body-text AA.
+        self.assertGreaterEqual(contrast(0xFF3347, 0x1C1C1E), 3)
+        self.assertGreaterEqual(contrast(0xFFFFFF, 0xFF3347), 3)
+
+    def test_original_vinyl_renderer_and_pause_motion_guards_are_preserved(self):
+        disc = source("IPTVRadio/Features/NowPlaying/VinylRecordView.swift")
+        self.assertEqual(hashlib.sha256(disc.encode()).hexdigest(),
+                         "29e632406d2372b4ade4a9ff63114ce994604378272df11d6350a5f626b15329")
+        for relative in ("MiniPlayerView.swift", "NowPlayingView.swift"):
+            player = source("IPTVRadio/Features/NowPlaying/" + relative)
+            self.assertIn("VinylRecordView(", player)
+            self.assertIn("playback.state.isPlaying && scenePhase == .active && !reduceMotion", player)
+
+    def test_playback_engine_and_car_call_repair_are_unchanged(self):
+        aggregate = ""
+        for path in sorted((ROOT / "IPTVRadio/Playback").rglob("*.swift")):
+            aggregate += path.relative_to(ROOT).as_posix() + "\0" + path.read_text(encoding="utf-8") + "\0"
+        self.assertEqual(hashlib.sha256(aggregate.encode()).hexdigest(), REFERENCE["preservedPlaybackDigest"])
+
+    def test_icon_geometry_is_preserved_and_colors_match_lineup(self):
+        icon_source = source("scripts/generate-aether-icon.py")
+        tree = ast.parse(icon_source)
         for node in ast.walk(tree):
             if isinstance(node, ast.Constant) and isinstance(node.value, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", node.value):
                 node.value = "COLOR"
-        actual = hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest()
-        self.assertEqual(actual, "a6f531875b98f7d03bf91d6703cbddf17898f007ceed1a59f3619aacda6d22f9")
+        self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
+                         "a6f531875b98f7d03bf91d6703cbddf17898f007ceed1a59f3619aacda6d22f9")
+        self.assertIn('SPINDLE = "#FF3347"', icon_source)
+        self.assertIn('FOREST = "#1C1C1E"', icon_source)
+        data = (ROOT / "IPTVRadio/Assets.xcassets/AppIcon.appiconset/AppIcon.png").read_bytes()
+        width, height, depth, mode = struct.unpack(">IIBB", data[16:26])
+        self.assertEqual((width, height, depth, mode), (1024, 1024, 8, 2))
 
-    def test_body_text_and_controls_meet_contrast_in_both_appearances(self):
-        for appearance in range(2):
-            for foreground in ("uiPrimaryText", "secondaryText", "uiMutedIcon", "uiAccent"):
-                for background in ("canvas", "surface", "uiNavigationSurface"):
-                    with self.subTest(appearance=appearance, foreground=foreground, background=background):
-                        self.assertGreaterEqual(contrast(self.colors[foreground][appearance], self.colors[background][appearance]), 4.5)
+    def test_navigation_uses_lineup_capsule_and_one_clearance_owner(self):
+        navigation = source("IPTVRadio/Features/Root/MainTabView.swift")
+        self.assertIn("AetherNavigationLayout.reservedHeight(", navigation)
+        self.assertIn('accessibilityIdentifier("aether.navigation.custom")', navigation)
+        self.assertIn("AetherTheme.selected : .clear, in: Capsule()", navigation)
+        self.assertIn(".tint(.white)", navigation)
+        self.assertNotIn("flatControlsClearance", source("IPTVRadio/Features/Settings/SettingsView.swift"))
+        self.assertNotIn(".frame(height: 61 +", source("IPTVRadio/Features/Favorites/FavoritesTabView.swift"))
 
-    def test_accent_button_labels_meet_contrast(self):
-        for appearance in range(2):
-            self.assertGreaterEqual(contrast(self.colors["onAccent"][appearance], self.colors["uiAccent"][appearance]), 4.5)
-
-    def test_shell_background_is_flat_and_separate_from_player(self):
-        self.assertIn("static let background = canvas", self.theme)
-        self.assertNotIn("LinearGradient(", self.theme)
-        self.assertNotIn("AetherTheme.", self.theme)
-
-    def test_shared_playback_artwork_keeps_original_theme(self):
-        source = (ROOT / "IPTVRadio/Features/Components/StationRow.swift").read_text(encoding="utf-8")
-        artwork = source.split("/// A station's channel logo.", 1)[1]
-        self.assertNotIn("AetherInterface.", artwork)
-        self.assertIn("AetherTheme.logoShadow", artwork)
-
-    def test_player_presentations_do_not_inherit_new_shell_tint(self):
-        for relative in ("Root/MainTabView.swift", "Radio/AetherDialView.swift"):
-            source = (ROOT / "IPTVRadio/Features" / relative).read_text(encoding="utf-8")
-            for line, following in zip(source.splitlines(), source.splitlines()[1:]):
-                if "MiniPlayerView(onOpen:" in line or "NowPlayingView()" in line:
-                    self.assertEqual(following.strip(), ".tint(AetherTheme.accent)")
+    def test_system_accent_asset_matches_the_shared_red(self):
+        asset = json.loads(source("IPTVRadio/Assets.xcassets/AccentColor.colorset/Contents.json"))
+        for item in asset["colors"]:
+            components = item["color"]["components"]
+            self.assertAlmostEqual(float(components["red"]), 1, places=5)
+            self.assertAlmostEqual(float(components["green"]), 0x33 / 255, places=5)
+            self.assertAlmostEqual(float(components["blue"]), 0x47 / 255, places=5)
 
 
 if __name__ == "__main__":
