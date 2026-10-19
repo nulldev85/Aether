@@ -34,17 +34,19 @@ struct StationRow: View {
         } label: {
             HStack(spacing: 14) {
                 StationArtwork(logoURL: displayedStation.logoURL, size: 54)
+                    .padding(5)
+                    .background(AetherInterface.surface, in: RoundedRectangle(cornerRadius: 8))
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(station.name)
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(AetherTheme.primaryText)
+                        .foregroundStyle(AetherInterface.primaryText)
                         .lineLimit(2)
                     if !station.groupTitle.isEmpty {
                         Text(station.groupTitle)
                             .font(.system(size: 12, weight: .medium))
                             .tracking(0.15)
-                            .foregroundStyle(AetherTheme.secondaryText)
+                            .foregroundStyle(AetherInterface.secondaryText)
                             .lineLimit(1)
                     }
                 }
@@ -60,19 +62,28 @@ struct StationRow: View {
                 } label: {
                     Image(systemName: favorites.isFavorite(station) ? "star.fill" : "star")
                         .font(.system(size: 19, weight: .medium))
-                        .foregroundStyle(favorites.isFavorite(station) ? AetherTheme.accent : AetherTheme.mutedIcon)
-                        .frame(width: 34, height: 40)
+                        .foregroundStyle(favorites.isFavorite(station) ? AetherInterface.accent : AetherInterface.mutedIcon)
+                        .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(favorites.isFavorite(station) ? "Remove from favorites" : "Add to favorites")
                 .accessibilityIdentifier("station.favorite.\(station.name)")
             }
-            .padding(.vertical, 11)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 12)
+            .background(isCurrent ? AetherInterface.accentSoft.opacity(0.55) : Color.clear,
+                        in: RoundedRectangle(cornerRadius: 8))
+            .overlay(alignment: .leading) {
+                if isCurrent {
+                    Rectangle().fill(AetherInterface.accent)
+                        .frame(width: 2, height: 32)
+                }
+            }
             .contentShape(Rectangle())
             .overlay(alignment: .bottom) {
-                AetherTheme.border.opacity(0.72)
+                AetherInterface.border.opacity(0.72)
                     .frame(height: 0.5)
-                    .padding(.leading, 68)
+                    .padding(.leading, 88)
             }
         }
         .buttonStyle(.plain)
@@ -95,7 +106,7 @@ struct StationRow: View {
                 Text("Paused")
                     .font(.caption2.weight(.semibold))
             }
-            .foregroundStyle(AetherTheme.secondaryText)
+            .foregroundStyle(AetherInterface.secondaryText)
         case .loading:
             ProgressView().controlSize(.small)
         case .failed:
@@ -119,11 +130,7 @@ private struct LiveActivityBadge: View {
             HStack(alignment: .center, spacing: 2) {
                 ForEach(0..<5, id: \.self) { index in
                     Capsule()
-                        .fill(LinearGradient(
-                            colors: [AetherTheme.accent, AetherTheme.accent.opacity(0.55)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        ))
+                        .fill(AetherInterface.accent)
                         .frame(width: 3, height: barHeight(index, at: context.date))
                 }
             }

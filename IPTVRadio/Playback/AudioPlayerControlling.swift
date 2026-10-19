@@ -30,10 +30,13 @@ protocol AudioPlayerControlling: AnyObject {
     /// buffering notification — live engines emit those routinely while
     /// perfectly healthy, and acting on one tears down a working stream.
     var playbackProgress: Double? { get }
+    /// Output-clock progress after an interruption, not network/demux activity.
+    var interruptionRecoveryProgress: Double? { get }
     /// Prepares and starts the stream, holding `bufferDuration` seconds of
     /// audio in reserve ahead of playback (see `StreamBuffer`).
     func load(url: URL, bufferDuration: TimeInterval)
     func play()
+    func resumeAfterInterruption()
     func pause()
     func stop()
 }
@@ -42,4 +45,6 @@ extension AudioPlayerControlling {
     var engineName: String { "Mock audio player" }
     var startupGracePeriod: TimeInterval { 0 }
     var playbackProgress: Double? { nil }
+    var interruptionRecoveryProgress: Double? { playbackProgress }
+    func resumeAfterInterruption() { play() }
 }

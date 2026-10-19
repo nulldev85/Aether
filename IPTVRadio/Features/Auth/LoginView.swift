@@ -55,7 +55,7 @@ struct LoginView: View {
                 }
                 .padding()
             }
-            .background(AetherTheme.background.ignoresSafeArea())
+            .background(AetherInterface.background.ignoresSafeArea())
             .navigationTitle("Sign In")
             .onAppear {
                 mode = environment.settings.authMode
@@ -64,20 +64,7 @@ struct LoginView: View {
     }
 
     private var header: some View {
-        VStack(spacing: 8) {
-            Text("Æ")
-                .font(.system(size: 72, weight: .semibold, design: .serif))
-                .foregroundStyle(AetherTheme.accent)
-                .accessibilityHidden(true)
-            Text("Radio for your IPTV subscription")
-                .font(AetherTheme.sectionFont)
-                .multilineTextAlignment(.center)
-            Text("Sign in with your provider to load its stations. You can also explore public radio in Aether Dial.")
-                .font(.subheadline)
-                .foregroundStyle(AetherTheme.secondaryText)
-                .multilineTextAlignment(.center)
-        }
-        .padding(.top, 24)
+        RadioPageHeading(title: "Aether", subtitle: "Your radio. One place.\nSign in to load your provider's stations.", eyebrow: "INDEPENDENT LISTENING")
     }
 
     private var xtreamForm: some View {
@@ -116,7 +103,7 @@ struct LoginView: View {
                 .accessibilityIdentifier("login.playlistURL")
             Text("The playlist is downloaded from your own provider. URLs containing embedded credentials are stored only in the Keychain and never logged.")
                 .font(.footnote)
-                .foregroundStyle(AetherTheme.secondaryText)
+                .foregroundStyle(AetherInterface.secondaryText)
         }
     }
 
@@ -126,7 +113,7 @@ struct LoginView: View {
         } label: {
             Group {
                 if isSigningIn {
-                    ProgressView().tint(AetherTheme.onAccent)
+                    ProgressView().tint(AetherInterface.onAccent)
                 } else {
                     Text("Sign In").font(.headline)
                 }
@@ -134,8 +121,8 @@ struct LoginView: View {
             .frame(maxWidth: .infinity)
             .frame(height: 44)
         }
-        .background(Color.accentColor)
-        .foregroundStyle(AetherTheme.onAccent)
+        .background(AetherInterface.accent)
+        .foregroundStyle(AetherInterface.onAccent)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .disabled(isSigningIn)
         .accessibilityIdentifier("login.submit")
@@ -147,13 +134,13 @@ struct LoginView: View {
                 .font(.footnote.weight(.semibold))
             Text("You must have valid authorization to access provider streams. Aether does not bundle or redistribute their audio and does not bypass DRM or access restrictions. Public stations in Aether Dial are operated by third parties.")
                 .font(.caption2)
-                .foregroundStyle(AetherTheme.secondaryText)
+                .foregroundStyle(AetherInterface.secondaryText)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AetherTheme.raisedSurface)
+        .background(AetherInterface.raisedSurface)
         .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(AetherTheme.border, lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(AetherInterface.border, lineWidth: 1))
     }
 
     private func signIn() {

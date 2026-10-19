@@ -14,6 +14,13 @@ final class IPTVRadioUITests: XCTestCase {
         return app
     }
 
+    private func capture(_ app: XCUIApplication, name: String) {
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
     func testLoginFlowShowsFormAndAuthorizesMockCredentials() throws {
         let app = launch(scenario: "UITestLogin")
 
@@ -48,6 +55,7 @@ final class IPTVRadioUITests: XCTestCase {
         app.buttons["SXM"].tap()
         XCTAssertTrue(app.staticTexts["SiriusXM Hits 1"].waitForExistence(timeout: 8))
         XCTAssertTrue(app.staticTexts["SiriusXM Octane"].exists)
+        capture(app, name: "Shell — SiriusXM")
 
         // Radio only: there is no TV/video browsing tab.
         XCTAssertFalse(app.buttons["Browse"].exists, "TV browsing must not exist in a radio-only app")
@@ -67,11 +75,13 @@ final class IPTVRadioUITests: XCTestCase {
         searchField.typeText("Jazz")
 
         XCTAssertTrue(app.staticTexts["Jazz Cafe Radio"].waitForExistence(timeout: 8))
+        capture(app, name: "Shell — Search")
     }
 
     func testManualRadioStationCanBeAddedPlayedAndRemoved() throws {
         let app = launch(scenario: "UITestBrowse")
         XCTAssertTrue(app.staticTexts["Your Radio stations"].waitForExistence(timeout: 8))
+        capture(app, name: "Shell — Radio")
 
         app.buttons["manual.addEmpty"].tap()
         let name = app.textFields["manual.name"]
@@ -116,6 +126,8 @@ final class IPTVRadioUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Favorites"].waitForExistence(timeout: 8))
         XCTAssertTrue(app.staticTexts["SiriusXM Hits 1"].waitForExistence(timeout: 8))
 
+        capture(app, name: "Shell — Favorites")
+
         // Favorites must be playable from the Favorites tab.
         app.buttons["station.row.SiriusXM Hits 1"].firstMatch.tap()
         XCTAssertTrue(app.buttons["miniplayer.open"].waitForExistence(timeout: 8),
@@ -155,6 +167,7 @@ final class IPTVRadioUITests: XCTestCase {
         app.buttons["Settings"].tap()
         XCTAssertTrue(app.buttons["settings.category.account"].waitForExistence(timeout: 8),
                       "Tab bar must remain reachable during playback")
+        capture(app, name: "Shell — Settings with unchanged mini player")
         app.buttons["SXM"].tap()
         XCTAssertTrue(app.buttons["miniplayer.open"].waitForExistence(timeout: 8))
 
@@ -165,6 +178,7 @@ final class IPTVRadioUITests: XCTestCase {
             .matching(identifier: "nowplaying.vinyl").firstMatch.waitForExistence(timeout: 8))
         XCTAssertTrue(app.buttons["nowplaying.stop"].exists)
         XCTAssertTrue(app.buttons["nowplaying.sleepTimer"].exists)
+        capture(app, name: "Unchanged — Now Playing")
 
         // Switching stations repeatedly works without leaving the player.
         app.buttons["nowplaying.next"].tap()

@@ -10,9 +10,9 @@ struct IPTVRadioApp: App {
         _environment = StateObject(wrappedValue: env)
         let tabAppearance = UITabBarAppearance()
         tabAppearance.configureWithDefaultBackground()
-        tabAppearance.backgroundColor = AetherTheme.uiNavigationSurface.withAlphaComponent(0.94)
-        let inactive = AetherTheme.uiMutedIcon
-        let active = AetherTheme.uiAccent
+        tabAppearance.backgroundColor = AetherInterface.uiNavigationSurface.withAlphaComponent(0.98)
+        let inactive = AetherInterface.uiMutedIcon
+        let active = AetherInterface.uiAccent
         for itemAppearance in [
             tabAppearance.stackedLayoutAppearance,
             tabAppearance.inlineLayoutAppearance,
@@ -38,11 +38,11 @@ struct IPTVRadioApp: App {
             largeTitleAttributes[.font] = UIFont(descriptor: descriptor, size: 35)
         }
         navigationAppearance.largeTitleTextAttributes = largeTitleAttributes
-        navigationAppearance.buttonAppearance.normal.titleTextAttributes = [.foregroundColor: active]
-        navigationAppearance.doneButtonAppearance.normal.titleTextAttributes = [.foregroundColor: active]
+        navigationAppearance.buttonAppearance.normal.titleTextAttributes = [.foregroundColor: AetherTheme.uiAccent]
+        navigationAppearance.doneButtonAppearance.normal.titleTextAttributes = [.foregroundColor: AetherTheme.uiAccent]
         UINavigationBar.appearance().standardAppearance = navigationAppearance
         UINavigationBar.appearance().scrollEdgeAppearance = navigationAppearance
-        UINavigationBar.appearance().tintColor = active
+        UINavigationBar.appearance().tintColor = AetherTheme.uiAccent
         AppLogger.app.info("App started")
     }
 

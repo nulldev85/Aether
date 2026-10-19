@@ -47,6 +47,11 @@ final class AetherPlayerAdapter: NSObject, AudioPlayerControlling, AVPlayerItemM
 
     var startupGracePeriod: TimeInterval { 8 }
     var engineName: String { "AetherEngine 7.38.1" }
+    var interruptionRecoveryProgress: Double? {
+        guard activeURL != nil, !loading, !terminal, let engine,
+              engine.isSessionReady, engine.currentTime.isFinite else { return nil }
+        return engine.currentTime
+    }
     var playbackProgress: Double? {
         guard activeURL != nil, !loading, !terminal, let engine else { return nil }
         // The FFmpeg audio host's clock can keep running while a read is
@@ -268,6 +273,13 @@ final class AetherPlayerAdapter: NSObject, AudioPlayerControlling, AVPlayerItemM
     }
 
     func play() { wantsPlayback = true; staleSince = Date(); if !loading { engine?.play() } }
+    func resumeAfterInterruption() {
+        // A live reader can fill with old broadcast audio while a call owns
+        // the hardware, and iOS may flush its renderer on the AUX route change.
+        // Reopen the exact already-selected URL, not another format or engine.
+        guard let url = activeURL else { return }
+        load(url: url, bufferDuration: requestedBuffer)
+    }
     func pause() { wantsPlayback = false; engine?.pause() }
     func stop() {
         generation = UUID()

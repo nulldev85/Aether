@@ -8,12 +8,13 @@ struct SearchView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AetherTheme.background.ignoresSafeArea()
+                AetherInterface.background.ignoresSafeArea()
 
                 VStack(spacing: 0) {
+                    RadioPageHeading(title: "Search", subtitle: "Find something worth listening to.", eyebrow: "YOUR STATIONS")
+                        .padding(.horizontal, 20)
                     searchField
                         .padding(.horizontal, 20)
-                        .padding(.top, 16)
                         .padding(.bottom, 12)
 
                     Group {
@@ -29,29 +30,30 @@ struct SearchView: View {
                 }
             }
             .navigationTitle("Search")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
         }
-        .background(AetherTheme.background.ignoresSafeArea())
+        .background(AetherInterface.background.ignoresSafeArea())
     }
 
     private var searchField: some View {
         HStack(spacing: 12) {
             Image(systemName: "magnifyingglass")
-                .foregroundStyle(AetherTheme.accent)
+                .foregroundStyle(AetherInterface.accent)
             TextField("", text: $library.searchQuery,
                       prompt: Text("Station, genre, show or category")
-                        .foregroundStyle(AetherTheme.mutedIcon))
+                        .foregroundStyle(AetherInterface.mutedIcon))
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .submitLabel(.search)
-                .foregroundStyle(AetherTheme.primaryText)
+                .foregroundStyle(AetherInterface.primaryText)
                 .accessibilityIdentifier("search.field")
             if !library.searchQuery.isEmpty {
                 Button {
                     library.searchQuery = ""
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(AetherTheme.mutedIcon)
+                        .foregroundStyle(AetherInterface.mutedIcon)
                 }
                 .accessibilityLabel("Clear search")
             }
@@ -59,8 +61,8 @@ struct SearchView: View {
         .font(.body)
         .padding(.horizontal, 16)
         .frame(height: 52)
-        .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(AetherTheme.border, lineWidth: 1))
+        .background(AetherInterface.surface, in: RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(AetherInterface.border, lineWidth: 1))
     }
 
     @ViewBuilder

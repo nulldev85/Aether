@@ -18,6 +18,9 @@ struct FavoritesTabView: View {
                     )
                 } else {
                     List {
+                        RadioPageHeading(title: "Favorites", subtitle: "\(favorites.favorites.count) saved stations. Always close at hand.", eyebrow: "YOUR COLLECTION")
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                         ForEach(favorites.favorites.enumerated().map { IndexedFavorite(index: $0.offset, entry: $0.element) }) { item in
                             let entry = item.entry
                             HStack(spacing: 4) {
@@ -49,6 +52,7 @@ struct FavoritesTabView: View {
                 }
             }
             .navigationTitle("Favorites")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if favorites.favorites.count > 1 || isReordering {
                     ToolbarItem(placement: .topBarTrailing) {
@@ -59,7 +63,7 @@ struct FavoritesTabView: View {
                                 Text("Done")
                             } else {
                                 Image(systemName: "arrow.up.arrow.down")
-                                    .foregroundStyle(AetherTheme.mutedIcon)
+                                    .foregroundStyle(AetherInterface.mutedIcon)
                             }
                         }
                         .accessibilityLabel(isReordering ? "Done reordering" : "Reorder favorites")
@@ -67,7 +71,7 @@ struct FavoritesTabView: View {
                     }
                 }
             }
-            .background(AetherTheme.background.ignoresSafeArea())
+            .background(AetherInterface.background.ignoresSafeArea())
         }
     }
 }

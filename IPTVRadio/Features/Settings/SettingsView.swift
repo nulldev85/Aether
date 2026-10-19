@@ -25,15 +25,13 @@ struct SettingsView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("Settings")
-                        .font(AetherTheme.displayFont)
-                        .foregroundStyle(AetherTheme.primaryText)
+                    RadioPageHeading(title: "Settings", subtitle: "Make Aether your own.", eyebrow: "PREFERENCES")
                         .padding(.horizontal, 20)
                     categoryBar
                 }
                 .padding(.top, 12)
 
-                AetherTheme.border.opacity(0.65)
+                AetherInterface.border.opacity(0.65)
                     .frame(height: 1)
 
                 ScrollView {
@@ -58,7 +56,7 @@ struct SettingsView: View {
                 .scrollIndicators(.hidden)
                 .id(selectedCategory)
             }
-            .background(AetherTheme.background.ignoresSafeArea())
+            .background(AetherInterface.background.ignoresSafeArea())
             .toggleStyle(AetherSettingsToggleStyle())
             .toolbar(.hidden, for: .navigationBar)
             .alert("Sign out?", isPresented: $confirmSignOut) {
@@ -84,11 +82,14 @@ struct SettingsView: View {
                     Text(category.rawValue)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(selectedCategory == category
-                            ? AetherTheme.onAccent : AetherTheme.secondaryText)
+                            ? AetherInterface.accent : AetherInterface.secondaryText)
                         .padding(.vertical, 11)
                         .frame(maxWidth: .infinity)
-                        .background(selectedCategory == category ? AetherTheme.accent : .clear,
-                                    in: RoundedRectangle(cornerRadius: 10))
+                        .overlay(alignment: .bottom) {
+                            Rectangle().fill(AetherInterface.accent)
+                                .frame(height: 2)
+                                .opacity(selectedCategory == category ? 1 : 0)
+                        }
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -152,7 +153,7 @@ struct SettingsView: View {
             Button("Sign Out", role: .destructive) {
                 confirmSignOut = true
             }
-            .foregroundStyle(AetherTheme.destructive)
+            .foregroundStyle(AetherInterface.destructive)
             .accessibilityIdentifier("settings.signOut")
             .aetherSettingsRow()
         }
@@ -170,7 +171,7 @@ struct SettingsView: View {
                         Text("Cellular buffer")
                         Spacer()
                         Text("\(Int(settings.cellularBuffer)) s")
-                            .foregroundStyle(AetherTheme.secondaryText)
+                            .foregroundStyle(AetherInterface.secondaryText)
                     }
                     Slider(value: $settings.cellularBuffer, in: StreamBuffer.cellularRange, step: 1)
                 }
@@ -187,7 +188,7 @@ struct SettingsView: View {
                         Text("Stream timeout")
                         Spacer()
                         Text("\(Int(settings.streamTimeout)) s")
-                            .foregroundStyle(AetherTheme.secondaryText)
+                            .foregroundStyle(AetherInterface.secondaryText)
                     }
                     Slider(value: $settings.streamTimeout, in: 5...60, step: 1)
                 }
@@ -201,7 +202,7 @@ struct SettingsView: View {
                         Text("Auto-retry attempts")
                         Spacer()
                         Text("\(settings.retryLimit)")
-                            .foregroundStyle(AetherTheme.secondaryText)
+                            .foregroundStyle(AetherInterface.secondaryText)
                     }
                     Slider(value: Binding(
                         get: { Double(settings.retryLimit) },
@@ -321,30 +322,33 @@ struct SettingsView: View {
             HStack(spacing: 12) {
                 Image(systemName: systemImage)
                     .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(AetherTheme.accent)
+                    .foregroundStyle(AetherInterface.accent)
                     .frame(width: 28, height: 28)
                 Text(title)
-                    .font(AetherTheme.sectionFont)
-                    .foregroundStyle(AetherTheme.primaryText)
+                    .font(AetherInterface.sectionFont)
+                    .foregroundStyle(AetherInterface.primaryText)
             }
             .padding(.bottom, 10)
 
             content()
         }
-        .foregroundStyle(AetherTheme.secondaryText)
-        .tint(AetherTheme.accent)
+        .foregroundStyle(AetherInterface.secondaryText)
+        .tint(AetherInterface.accent)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(AetherInterface.surface, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(AetherInterface.border, lineWidth: 0.5))
     }
 
     private var settingsDivider: some View {
-        AetherTheme.border.opacity(0.55)
+        AetherInterface.border.opacity(0.55)
             .frame(height: 1)
     }
 
     private func settingsFooter(_ message: String) -> some View {
         Text(message)
             .font(.footnote)
-            .foregroundStyle(AetherTheme.secondaryText)
+            .foregroundStyle(AetherInterface.secondaryText)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.top, 8)
     }
@@ -355,9 +359,9 @@ struct SettingsView: View {
             Spacer()
             Image(systemName: "chevron.right")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AetherTheme.mutedIcon)
+                .foregroundStyle(AetherInterface.mutedIcon)
         }
-        .foregroundStyle(AetherTheme.secondaryText)
+        .foregroundStyle(AetherInterface.secondaryText)
     }
 
     private var cacheSize: Int {
@@ -383,7 +387,7 @@ private extension View {
     }
 }
 
-/// A muted green track and solid thumb make settings legible on warm paper.
+/// A quiet amber track with a solid thumb follows the browsing palette.
 private struct AetherSettingsToggleStyle: ToggleStyle {
     func makeBody(configuration: Configuration) -> some View {
         Button {
@@ -395,15 +399,15 @@ private struct AetherSettingsToggleStyle: ToggleStyle {
                 configuration.label
                 Spacer(minLength: 8)
                 Capsule()
-                    .fill(configuration.isOn ? AetherTheme.accentSoft : AetherTheme.border.opacity(0.7))
+                    .fill(configuration.isOn ? AetherInterface.accentSoft : AetherInterface.border.opacity(0.7))
                     .frame(width: 54, height: 30)
                     .overlay {
                         Capsule()
-                            .strokeBorder(AetherTheme.accent.opacity(configuration.isOn ? 0.45 : 0.18), lineWidth: 1)
+                            .strokeBorder(AetherInterface.accent.opacity(configuration.isOn ? 0.45 : 0.18), lineWidth: 1)
                     }
                     .overlay(alignment: configuration.isOn ? .trailing : .leading) {
                         Circle()
-                            .fill(configuration.isOn ? AetherTheme.accent : AetherTheme.mutedIcon)
+                            .fill(configuration.isOn ? AetherInterface.accent : AetherInterface.mutedIcon)
                             .frame(width: 26, height: 26)
                             .padding(2)
                     }
@@ -489,7 +493,7 @@ struct DetectionRulesEditorView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .background(AetherTheme.background.ignoresSafeArea())
+        .background(AetherInterface.background.ignoresSafeArea())
         .navigationTitle("Detection rules")
         .onAppear { loadFields() }
         .onDisappear { saveFields() }
@@ -534,29 +538,29 @@ struct PrivacyNoticeView: View {
                     .font(.headline)
                 Text("You must hold valid authorization to access any provider streams you configure. Aether also lets you explore publicly listed radio streams in Aether Dial. Stations are operated by third parties and may change or restrict access. The app does not bundle or redistribute their audio, or bypass DRM, authentication, geographic restrictions, or provider limitations.")
                     .font(.subheadline)
-                    .foregroundStyle(AetherTheme.secondaryText)
+                    .foregroundStyle(AetherInterface.secondaryText)
 
                 Text("Your data")
                     .font(.headline)
                 Text("Credentials (server URL, username, password or playlist URL) are stored exclusively in the iOS Keychain. Station lists and preferences stay on your device. Aether Dial sends the place, genre, and station name you search for to Radio Browser, and a station ID when you listen from the directory. It does not send your provider credentials or private stream URLs there.")
                     .font(.subheadline)
-                    .foregroundStyle(AetherTheme.secondaryText)
+                    .foregroundStyle(AetherInterface.secondaryText)
 
                 Text("No tracking")
                     .font(.headline)
                 Text("This app contains no analytics, advertising, or third-party tracking SDKs. Logs are scrubbed of usernames, passwords and credential-bearing URLs.")
                     .font(.subheadline)
-                    .foregroundStyle(AetherTheme.secondaryText)
+                    .foregroundStyle(AetherInterface.secondaryText)
 
                 Text("Secure connections")
                     .font(.headline)
                 Text("HTTPS is preferred. If your provider only offers an unencrypted HTTP endpoint, the app clearly warns you before you continue. Because providers differ, connections to provider-supplied HTTP endpoints (including artwork servers) are allowed; the app still warns you whenever an insecure portal is detected.")
                     .font(.subheadline)
-                    .foregroundStyle(AetherTheme.secondaryText)
+                    .foregroundStyle(AetherInterface.secondaryText)
             }
             .padding()
         }
-        .background(AetherTheme.background.ignoresSafeArea())
+        .background(AetherInterface.background.ignoresSafeArea())
         .navigationTitle("Privacy")
         .navigationBarTitleDisplayMode(.inline)
     }

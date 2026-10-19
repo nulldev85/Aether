@@ -4,6 +4,7 @@ import AVFoundation
 
 private final class StubAudioSession: AudioSessionControlling {
     private(set) var activationCount = 0
+    var hasExternalOutput = false
 
     func activateForPlayback() throws { activationCount += 1 }
     func deactivate() throws {}
@@ -28,6 +29,10 @@ final class StubAudioPlayer: AudioPlayerControlling {
     /// When set, every reading advances — an engine whose audio keeps flowing
     /// while it reports routine buffering.
     var progressAdvancesPerReading = false
+    var usesSeparateRecoveryClock = false
+    var recoveryClock: Double?
+    var didLoad: (() -> Void)?
+    private(set) var interruptionResumeCount = 0
     private(set) var playCount = 0
     private(set) var pauseCount = 0
     private(set) var stopCount = 0
@@ -35,6 +40,7 @@ final class StubAudioPlayer: AudioPlayerControlling {
     func load(url: URL, bufferDuration: TimeInterval) {
         loadedURLs.append(url)
         loadedBuffers.append(bufferDuration)
+        didLoad?()
     }
 
     var playbackProgress: Double? {
@@ -44,6 +50,10 @@ final class StubAudioPlayer: AudioPlayerControlling {
     }
 
     func play() { playCount += 1 }
+    var interruptionRecoveryProgress: Double? {
+        usesSeparateRecoveryClock ? recoveryClock : playbackProgress
+    }
+    func resumeAfterInterruption() { interruptionResumeCount += 1; play() }
     func pause() { pauseCount += 1 }
     func stop() { stopCount += 1 }
 
@@ -299,6 +309,189 @@ final class PlaybackEngineTests: XCTestCase {
             object: nil,
             userInfo: [AVAudioSessionInterruptionTypeKey: type.rawValue]
         )
+    }
+
+    private func interruption(_ type: AVAudioSession.InterruptionType) -> Notification {
+        Notification(name: AVAudioSession.interruptionNotification,
+                     userInfo: [AVAudioSessionInterruptionTypeKey: type.rawValue])
+    }
+
+    private func route(_ reason: AVAudioSession.RouteChangeReason) -> Notification {
+        Notification(name: AVAudioSession.routeChangeNotification,
+                     userInfo: [AVAudioSessionRouteChangeReasonKey: reason.rawValue])
+    }
+
+    @MainActor
+    func testCarAUXRouteNotificationsCannotResumeInsideTheCallOrLoseResumeIntent() async {
+        let session = StubAudioSession()
+        session.hasExternalOutput = true
+        let (engine, player, _, _) = await makeEngine(defaults: makeIsolatedDefaults(), audioSession: session)
+        let s = station("car-aux-call")
+        engine.play(s)
+        player.simulateReady()
+        engine.handleInterruption(interruption(.began))
+        engine.handleRouteChange(route(.oldDeviceUnavailable))
+        engine.handleRouteChange(route(.newDeviceAvailable))
+        XCTAssertEqual(engine.state, .paused(s))
+        XCTAssertEqual(player.playCount, 0, "A route notification must not resume inside a call")
+        XCTAssertEqual(session.activationCount, 1)
+        engine.handleInterruption(interruption(.ended))
+        XCTAssertEqual(engine.state, .playing(s))
+        XCTAssertEqual(player.interruptionResumeCount, 1)
+        XCTAssertEqual(session.activationCount, 2)
+        engine.handleInterruption(interruption(.ended))
+        XCTAssertEqual(player.interruptionResumeCount, 1, "Duplicate end notifications must not reopen the stream")
+        engine.stop()
+    }
+
+    @MainActor
+    func testUnplugDuringCallWaitsForExternalOutputInsteadOfPlayingOnSpeaker() async {
+        let session = StubAudioSession()
+        session.hasExternalOutput = true
+        let (engine, player, _, _) = await makeEngine(defaults: makeIsolatedDefaults(), audioSession: session)
+        let s = station("aux-disconnected")
+        engine.play(s)
+        player.simulateReady()
+        engine.handleInterruption(interruption(.began))
+        session.hasExternalOutput = false
+        engine.handleRouteChange(route(.oldDeviceUnavailable))
+        engine.handleInterruption(interruption(.ended))
+        XCTAssertEqual(engine.state, .paused(s))
+        XCTAssertEqual(player.interruptionResumeCount, 0)
+        session.hasExternalOutput = true
+        engine.handleRouteChange(route(.routeConfigurationChange))
+        XCTAssertEqual(engine.state, .playing(s))
+        XCTAssertEqual(player.interruptionResumeCount, 1)
+        engine.stop()
+    }
+
+    @MainActor
+    func testAUXLossBeforeInterruptionBeganAndLateOldRouteAfterEndDoNotStrandPlayback() async {
+        let session = StubAudioSession()
+        session.hasExternalOutput = true
+        let (engine, player, _, _) = await makeEngine(defaults: makeIsolatedDefaults(), audioSession: session)
+        let s = station("aux-notification-order")
+        engine.play(s)
+        player.simulateReady()
+        session.hasExternalOutput = false
+        engine.handleRouteChange(route(.oldDeviceUnavailable))
+        XCTAssertEqual(engine.state, .paused(s))
+        engine.handleInterruption(interruption(.began))
+        XCTAssertEqual(player.interruptionResumeCount, 0)
+        session.hasExternalOutput = true
+        engine.handleInterruption(interruption(.ended))
+        engine.handleRouteChange(route(.oldDeviceUnavailable))
+        XCTAssertEqual(engine.state, .playing(s))
+        XCTAssertEqual(player.interruptionResumeCount, 1)
+        engine.stop()
+    }
+
+    @MainActor
+    func testExplicitPlayCanChooseSpeakerAfterAUXWasUnpluggedDuringCall() async {
+        let session = StubAudioSession()
+        session.hasExternalOutput = true
+        let (engine, player, _, _) = await makeEngine(defaults: makeIsolatedDefaults(), audioSession: session)
+        let s = station("explicit-speaker-play")
+        engine.play(s)
+        player.simulateReady()
+        engine.handleInterruption(interruption(.began))
+        session.hasExternalOutput = false
+        engine.handleInterruption(interruption(.ended))
+        XCTAssertEqual(engine.state, .paused(s))
+        engine.togglePlayPause()
+        XCTAssertEqual(engine.state, .playing(s))
+        XCTAssertEqual(player.interruptionResumeCount, 1)
+        engine.stop()
+    }
+
+    @MainActor
+    func testManuallyPausedCarStreamStaysPausedAfterCallAndRouteReturn() async {
+        let session = StubAudioSession()
+        session.hasExternalOutput = true
+        let (engine, player, _, _) = await makeEngine(defaults: makeIsolatedDefaults(), audioSession: session)
+        let s = station("car-user-pause")
+        engine.play(s)
+        player.simulateReady()
+        engine.togglePlayPause()
+        engine.handleInterruption(interruption(.began))
+        engine.handleRouteChange(route(.newDeviceAvailable))
+        engine.handleInterruption(interruption(.ended))
+        engine.handleRouteChange(route(.newDeviceAvailable))
+        XCTAssertEqual(engine.state, .paused(s))
+        XCTAssertEqual(player.playCount, 0)
+        engine.stop()
+    }
+
+    @MainActor
+    func testStopDuringCarCallCannotBeUndoneByLateEndOrRouteNotifications() async {
+        let (engine, player, _, _) = await makeEngine(defaults: makeIsolatedDefaults(), audioSession: StubAudioSession())
+        engine.play(station("stopped-during-call"))
+        player.simulateReady()
+        engine.handleInterruption(interruption(.began))
+        engine.stop()
+        engine.handleInterruption(interruption(.ended))
+        engine.handleRouteChange(route(.newDeviceAvailable))
+        XCTAssertEqual(engine.state, .stopped(nil))
+        XCTAssertEqual(player.playCount, 0)
+        XCTAssertEqual(player.loadedURLs.count, 1)
+    }
+
+    @MainActor
+    func testCallDuringLoadingReopensCurrentStationOnlyAfterExternalRouteReturns() async {
+        let session = StubAudioSession()
+        session.hasExternalOutput = true
+        let (engine, player, _, _) = await makeEngine(defaults: makeIsolatedDefaults(), audioSession: session)
+        let s = station("call-during-load")
+        engine.play(s)
+        engine.handleInterruption(interruption(.began))
+        session.hasExternalOutput = false
+        engine.handleInterruption(interruption(.ended))
+        XCTAssertEqual(player.loadedURLs.count, 1)
+        XCTAssertEqual(engine.state, .paused(s))
+        session.hasExternalOutput = true
+        engine.handleRouteChange(route(.newDeviceAvailable))
+        XCTAssertEqual(player.loadedURLs, [s.streamURL, s.streamURL])
+        player.simulateReady()
+        XCTAssertEqual(engine.state, .playing(s))
+        engine.stop()
+    }
+
+    @MainActor
+    func testNetworkBytesCannotHideFrozenOutputAfterCallAndRecoveryKeepsSelectedFormat() async {
+        let (engine, player, _, _) = await makeEngine(defaults: makeIsolatedDefaults(), audioSession: StubAudioSession(), interruptionRecoveryDelay: 0.02)
+        var s = station("output-frozen")
+        let workingURL = URL(string: "https://fixture.invalid/original.ts")!
+        s.alternativeStreamURLs = [workingURL]
+        engine.play(s)
+        player.simulateFailure("First endpoint refused")
+        player.simulateReady()
+        player.setProgress(100)
+        player.progressAdvancesPerReading = true
+        player.usesSeparateRecoveryClock = true
+        player.recoveryClock = 12
+        engine.handleInterruption(interruption(.began))
+        let reopened = expectation(description: "frozen renderer reopens the working endpoint")
+        player.didLoad = { reopened.fulfill() }
+        engine.handleInterruption(interruption(.ended))
+        await fulfillment(of: [reopened], timeout: 2)
+        XCTAssertEqual(player.loadedURLs, [s.streamURL, workingURL, workingURL])
+        XCTAssertEqual(player.interruptionResumeCount, 1)
+        engine.stop()
+    }
+
+    @MainActor
+    func testUnknownOutputProgressAfterCallIsNotTreatedAsSuccessfulResume() async {
+        let (engine, player, _, _) = await makeEngine(defaults: makeIsolatedDefaults(), audioSession: StubAudioSession(), interruptionRecoveryDelay: 0.02)
+        let s = station("unknown-output")
+        engine.play(s)
+        player.simulateReady()
+        engine.handleInterruption(interruption(.began))
+        let reopened = expectation(description: "unconfirmed output gets recovery")
+        player.didLoad = { reopened.fulfill() }
+        engine.handleInterruption(interruption(.ended))
+        await fulfillment(of: [reopened], timeout: 2)
+        XCTAssertEqual(player.loadedURLs, [s.streamURL, s.streamURL])
+        engine.stop()
     }
 
     @MainActor

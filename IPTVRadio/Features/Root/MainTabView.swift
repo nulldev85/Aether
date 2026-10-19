@@ -38,18 +38,20 @@ struct MainTabView: View {
                     .tabItem { Label("Settings", systemImage: "gearshape") }
                     .tag(AetherTab.settings)
             }
-            .tint(AetherTheme.accent)
+            .tint(AetherInterface.accent)
 
             if !settings.liquidGlassEnabled {
                 VStack(spacing: 0) {
                     MiniPlayerView(onOpen: { showNowPlaying = true })
+                        .tint(AetherTheme.accent)
                     FlatTabBar(selection: $selectedTab)
                 }
             }
         }
-        .background(AetherTheme.background.ignoresSafeArea())
+        .background(AetherInterface.background.ignoresSafeArea())
         .sheet(isPresented: $showNowPlaying) {
             NowPlayingView()
+                .tint(AetherTheme.accent)
         }
     }
 
@@ -57,10 +59,12 @@ struct MainTabView: View {
     @ViewBuilder
     private func tabContent<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         content()
+            .foregroundStyle(AetherInterface.primaryText)
             .toolbar(settings.liquidGlassEnabled ? .visible : .hidden, for: .tabBar)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if settings.liquidGlassEnabled {
                     MiniPlayerView(onOpen: { showNowPlaying = true })
+                        .tint(AetherTheme.accent)
                 } else {
                     // Let the final row scroll above the overlaid controls.
                     Color.clear.frame(height: flatControlsHeight)
@@ -110,20 +114,21 @@ private struct FlatTabBar: View {
                     selection = tab
                 } label: {
                     VStack(spacing: 5) {
-                        Capsule()
-                            .fill(AetherTheme.accent)
-                            .frame(width: 18, height: 3)
-                            .opacity(selection == tab ? 1 : 0)
                         Image(systemName: tab.symbol)
-                            .font(.system(size: 22, weight: selection == tab ? .semibold : .regular))
+                            .font(.system(size: 20, weight: selection == tab ? .semibold : .regular))
                             .frame(height: 25)
                         Text(tab.title)
                             .font(.system(size: 10, weight: selection == tab ? .semibold : .medium))
                             .tracking(0.2)
                             .lineLimit(1)
                     }
-                    .foregroundStyle(selection == tab ? AetherTheme.accent : AetherTheme.mutedIcon)
+                    .foregroundStyle(selection == tab ? AetherInterface.accent : AetherInterface.mutedIcon)
                     .frame(maxWidth: .infinity, minHeight: 56)
+                    .overlay(alignment: .top) {
+                        Rectangle().fill(AetherInterface.accent)
+                            .frame(width: 28, height: 2)
+                            .opacity(selection == tab ? 1 : 0)
+                    }
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -134,9 +139,9 @@ private struct FlatTabBar: View {
         }
         .padding(.horizontal, 8)
         .padding(.top, 5)
-        .background(AetherTheme.tabBar.opacity(0.96).ignoresSafeArea(edges: .bottom))
+        .background(AetherInterface.tabBar.opacity(0.96).ignoresSafeArea(edges: .bottom))
         .overlay(alignment: .top) {
-            AetherTheme.border.frame(height: 1)
+            AetherInterface.border.frame(height: 1)
         }
     }
 }

@@ -41,13 +41,13 @@ struct RootView: View {
 struct LaunchLoadingView: View {
     var body: some View {
         VStack(spacing: 16) {
-            Text("Æ")
-                .font(.system(size: 68, weight: .semibold, design: .serif))
-                .foregroundStyle(AetherTheme.accent)
+            Text("Aether")
+                .font(AetherInterface.displayFont)
+                .foregroundStyle(AetherInterface.accent)
             ProgressView()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(AetherTheme.background.ignoresSafeArea())
+        .background(AetherInterface.background.ignoresSafeArea())
         .accessibilityLabel(Text("Loading"))
     }
 }

@@ -182,7 +182,11 @@ final class AetherAudioTests: XCTestCase {
         let url = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "aether-audio", withExtension: "ts"),
                                 "Run bash scripts/make-audio-fixture.sh before the tests")
         let fixture = try Data(contentsOf: url)
-        MockURLProtocol.requestHandler = { _ in (200, fixture) }
+        let streamURL = URL(string: "https://fixture.invalid/live/original.ts")!
+        MockURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.url, streamURL, "Interruption recovery must retain the exact source URL")
+            return (200, fixture)
+        }
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [MockURLProtocol.self]
         let player = AetherPlayerAdapter(httpConfiguration: configuration)
@@ -199,9 +203,18 @@ final class AetherAudioTests: XCTestCase {
             }
         }
         defer { player.stop() }
-        player.load(url: URL(string: "https://fixture.invalid/live/original.ts")!, bufferDuration: 4)
+        player.load(url: streamURL, bufferDuration: 4)
         await fulfillment(of: [ready, diagnostics], timeout: 30)
         XCTAssertTrue(player.usesAudioOnlyPipeline)
         XCTAssertGreaterThan(player.playbackProgress ?? 0, 0)
+        let resumed = expectation(description: "fresh audio-only renderer recovered after interruption")
+        player.onReady = { resumed.fulfill() }
+        player.onFailure = { message in XCTFail(message); resumed.fulfill() }
+        player.pause()
+        player.resumeAfterInterruption()
+        XCTAssertNil(player.interruptionRecoveryProgress, "Network intake cannot certify a new renderer before load")
+        await fulfillment(of: [resumed], timeout: 30)
+        XCTAssertTrue(player.usesAudioOnlyPipeline)
+        XCTAssertGreaterThan(player.interruptionRecoveryProgress ?? 0, 0)
     }
 }

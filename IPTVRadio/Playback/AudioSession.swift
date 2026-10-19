@@ -9,11 +9,22 @@ import AVFoundation
 /// playing — so nothing detects the fault and the station appears to die
 /// after every phone call.
 protocol AudioSessionControlling: AnyObject {
+    var hasExternalOutput: Bool { get }
     func activateForPlayback() throws
     func deactivate() throws
 }
 
+extension AudioSessionControlling {
+    var hasExternalOutput: Bool { false }
+}
+
 final class AVAudioSessionAdapter: AudioSessionControlling {
+    var hasExternalOutput: Bool {
+        AVAudioSession.sharedInstance().currentRoute.outputs.contains {
+            ![AVAudioSession.Port.builtInSpeaker, .builtInReceiver].contains($0.portType)
+        }
+    }
+
     func activateForPlayback() throws {
         let session = AVAudioSession.sharedInstance()
         try session.setCategory(.playback, mode: .default, policy: .longFormAudio, options: [])
