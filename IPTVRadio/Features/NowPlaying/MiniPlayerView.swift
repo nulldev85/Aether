@@ -29,11 +29,11 @@ struct MiniPlayerView: View {
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(playback.nowPlayingMetadata?.title ?? station.name)
-                                    .font(.subheadline.weight(.medium))
+                                    .font(.radio(.subheadline, .semibold))
                                     .foregroundStyle(AetherTheme.primaryText)
                                     .lineLimit(1)
                                 Text(playback.nowPlayingMetadata?.artist ?? stateDescription)
-                                    .font(.caption2)
+                                    .font(.radio(.caption2))
                                     .foregroundStyle(AetherTheme.secondaryText)
                                     .lineLimit(1)
                             }
@@ -56,7 +56,9 @@ struct MiniPlayerView: View {
                         playback.togglePlayPause()
                     } label: {
                         Image(systemName: iconName)
-                            .font(.title3)
+                            .font(.radio(.title3))
+                            .frame(width: 44, height: 44)
+                            .background(AetherTheme.selected, in: Circle())
                     }
                     .accessibilityLabel(toggleAccessibilityLabel)
                     .accessibilityIdentifier("miniplayer.toggle")
@@ -65,18 +67,18 @@ struct MiniPlayerView: View {
                         playback.stop()
                     } label: {
                         Image(systemName: "stop.fill")
-                            .font(.title3)
+                            .font(.radio(.title3))
+                            .frame(width: 44, height: 44)
                     }
                     .accessibilityLabel("Stop")
                     .accessibilityIdentifier("miniplayer.stop")
                 }
                 .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.vertical, 12)
                 .foregroundStyle(AetherTheme.primaryText)
-                .background(AetherTheme.navigationSurface.opacity(0.96))
-                .overlay(alignment: .top) {
-                    AetherTheme.border.frame(height: 1)
-                }
+                .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: AetherTheme.panelRadius, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: AetherTheme.panelRadius, style: .continuous).strokeBorder(AetherTheme.divider, lineWidth: 0.5))
+                .padding(.horizontal, AetherTheme.margin)
                 .task(id: station.id) {
                     stationLogo = nil
                     guard let url = station.logoURL else { return }

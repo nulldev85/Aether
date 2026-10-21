@@ -41,8 +41,8 @@ struct RootView: View {
 struct LaunchLoadingView: View {
     var body: some View {
         VStack(spacing: 16) {
-            Text("Æ")
-                .font(.system(size: 68, weight: .semibold, design: .serif))
+            Text("Aether")
+                .font(AetherTheme.displayFont)
                 .foregroundStyle(AetherTheme.accent)
             ProgressView()
         }

@@ -18,6 +18,9 @@ struct FavoritesTabView: View {
                     )
                 } else {
                     List {
+                        RadioPageHeading(title: "Favorites", subtitle: "\(favorites.favorites.count) saved stations. Always close at hand.")
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                         ForEach(favorites.favorites.enumerated().map { IndexedFavorite(index: $0.offset, entry: $0.element) }) { item in
                             let entry = item.entry
                             HStack(spacing: 4) {
@@ -35,20 +38,13 @@ struct FavoritesTabView: View {
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
                         }
-                        if !settings.liquidGlassEnabled {
-                            Color.clear
-                                .frame(height: 61 + (playback.state.station == nil ? 0 : 60))
-                                .listRowInsets(EdgeInsets())
-                                .listRowBackground(Color.clear)
-                                .listRowSeparator(.hidden)
-                                .accessibilityHidden(true)
-                        }
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
                 }
             }
             .navigationTitle("Favorites")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if favorites.favorites.count > 1 || isReordering {
                     ToolbarItem(placement: .topBarTrailing) {
@@ -56,7 +52,7 @@ struct FavoritesTabView: View {
                             isReordering.toggle()
                         } label: {
                             if isReordering {
-                                Text("Done")
+                                Text("Done").font(.radio(.body, .semibold))
                             } else {
                                 Image(systemName: "arrow.up.arrow.down")
                                     .foregroundStyle(AetherTheme.mutedIcon)

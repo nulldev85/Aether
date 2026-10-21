@@ -1,6 +1,6 @@
 import Foundation
 
-/// Resolves single-station M3U and PLS links to streams VLC can play directly.
+/// Resolves single-station M3U and PLS links to direct playback URLs.
 /// HLS (.m3u8), MP3, AAC, Ogg, FLAC, and extensionless stream URLs pass through.
 struct ManualPlaylistResolver {
     let httpClient: HTTPClient

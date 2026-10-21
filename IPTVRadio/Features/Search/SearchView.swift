@@ -11,9 +11,10 @@ struct SearchView: View {
                 AetherTheme.background.ignoresSafeArea()
 
                 VStack(spacing: 0) {
+                    RadioPageHeading(title: "Search", subtitle: "Find something worth listening to.")
+                        .padding(.horizontal, 20)
                     searchField
                         .padding(.horizontal, 20)
-                        .padding(.top, 16)
                         .padding(.bottom, 12)
 
                     Group {
@@ -29,6 +30,7 @@ struct SearchView: View {
                 }
             }
             .navigationTitle("Search")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
         }
         .background(AetherTheme.background.ignoresSafeArea())
@@ -46,6 +48,7 @@ struct SearchView: View {
                 .submitLabel(.search)
                 .foregroundStyle(AetherTheme.primaryText)
                 .accessibilityIdentifier("search.field")
+                .font(.radio(.body))
             if !library.searchQuery.isEmpty {
                 Button {
                     library.searchQuery = ""
@@ -56,11 +59,10 @@ struct SearchView: View {
                 .accessibilityLabel("Clear search")
             }
         }
-        .font(.body)
+        .font(.radio(.body))
         .padding(.horizontal, 16)
-        .frame(height: 52)
-        .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(AetherTheme.border, lineWidth: 1))
+        .frame(height: 44)
+        .background(AetherTheme.surface, in: Capsule())
     }
 
     @ViewBuilder

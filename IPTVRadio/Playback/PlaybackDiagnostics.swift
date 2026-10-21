@@ -59,6 +59,9 @@ struct StreamDiagnosticsSample: Equatable {
     var mediaRequests: Int?
     /// Decoded audio codec/sample rate/channels, e.g. "AAC-LC · 44.1 kHz · stereo".
     var audioFormat: String? = nil
+    var playbackEngine: String? = nil
+    var playbackRoute: String? = nil
+    var bufferIsEstimated: Bool = false
 }
 
 /// What became of one stream-format candidate for the current station.
@@ -158,6 +161,9 @@ struct StreamDiagnostics: Equatable {
     /// effect when a stream loads, so this is how a listener sees whether the
     /// cellular setting is the one in use.
     var buffer: StreamBuffer? = nil
+    var playbackEngine: String? = nil
+    var playbackRoute: String? = nil
+    var bufferIsEstimated: Bool = false
 
     /// Best available single bitrate figure for compact display. Observed
     /// bitrate is intentionally excluded: it reflects the recent download

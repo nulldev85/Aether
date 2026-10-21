@@ -1,9 +1,8 @@
 name: iOS Build and Delivery
 
 # Builds, tests, and (when signing secrets are configured) exports a signed IPA.
-# Without signing secrets the workflow still compiles, tests, and uploads an
-# UNSIGNED SIMULATOR build for diagnostics. An unsigned simulator build cannot
-# be installed on a physical iPhone.
+# Always exports an unsigned iPhone IPA for re-signing, plus a simulator
+# diagnostic artifact. Signing secrets additionally enable a signed export.
 
 on:
   push:
@@ -66,6 +65,13 @@ jobs:
           xcodebuild -version
           xcrun simctl list devices available | grep "$SIMULATOR_NAME" || true
 
+      - name: Generate synthetic AAC transport-stream fixture
+        run: |
+          if ! command -v ffmpeg >/dev/null; then
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install ffmpeg
+          fi
+          bash scripts/make-audio-fixture.sh
+
       - name: Run unit and UI tests
         run: |
           set -o pipefail
@@ -89,6 +95,9 @@ jobs:
 
       - name: Upload test results
         if: always()
+        # Diagnostic storage failures must not hide a successful test result or
+        # prevent device packaging. The test command itself remains required.
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: test-results
@@ -139,9 +148,16 @@ jobs:
             exit 1
           fi
 
+      - name: Check device package verifier regressions
+        run: python3 scripts/test-aether-build.py
+
+      - name: Check Lineup style and preserved vinyl/playback boundaries
+        run: python3 scripts/test-radio-design.py
+
   # ---------------------------------------------------------------------------
   # Package step. Produces:
-  #   - an unsigned SIMULATOR build artifact (always, diagnostic only)
+  #   - an unsigned iPhone IPA for re-signing (required)
+  #   - an unsigned SIMULATOR build artifact (best-effort, diagnostic only)
   #   - a signed, installable IPA (only when signing secrets are configured)
   # ---------------------------------------------------------------------------
   build:
@@ -176,6 +192,7 @@ jobs:
           zip -qr "$GITHUB_WORKSPACE/build/IPTVRadio-unsigned-simulator.zip" IPTVRadio.app
 
       - name: Upload unsigned simulator build
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: IPTVRadio-unsigned-simulator-build
@@ -207,6 +224,7 @@ jobs:
           DEVICE_APP="build/device/Build/Products/Release-iphoneos/IPTVRadio.app"
           test -d "$DEVICE_APP" || { echo "::error::Device app not found at $DEVICE_APP"; exit 1; }
           echo "Verified device app exists at $DEVICE_APP"
+          python3 scripts/check-aether-build.py "$DEVICE_APP"
 
           mkdir -p build/ipa-staging/Payload
           cp -R "$DEVICE_APP" build/ipa-staging/Payload/IPTVRadio.app
@@ -268,6 +286,7 @@ jobs:
 
       - name: Upload build logs
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: build-logs
@@ -313,3 +332,58 @@ jobs:
   # ---------------------------------------------------------------------------
   # PR validation only needs compile+tests (handled by `test`) so nothing extra.
   # ---------------------------------------------------------------------------
+  source-release:
+    name: Publish public source IPA
+    needs: [test, security-scan, build]
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download completed device IPA
+        uses: actions/download-artifact@v4
+        with:
+          name: IPTVRadio-unsigned-device-ipa
+          path: release
+
+      - name: Read IPA metadata
+        env:
+          IPA: release/IPTVRadio-unsigned-device.ipa
+        run: |
+          python3 - "$IPA" "$RUNNER_TEMP/source-release-notes.md" <<'PY'
+          import os
+          import plistlib
+          import sys
+          import zipfile
+
+          ipa_path, notes_path = sys.argv[1:]
+          with zipfile.ZipFile(ipa_path) as archive:
+              plist = plistlib.loads(archive.read("Payload/IPTVRadio.app/Info.plist"))
+          fields = {
+              "Source-App": "Aether",
+              "Source-Bundle-Identifier": plist["CFBundleIdentifier"],
+              "Source-Version": plist["CFBundleShortVersionString"],
+              "Source-Build-Version": plist["CFBundleVersion"],
+              "Source-Minimum-OS-Version": plist.get("MinimumOSVersion", "") or "unknown",
+              "Source-Branch": "main",
+              "Source-SHA": os.environ["GITHUB_SHA"],
+          }
+          if fields["Source-Bundle-Identifier"] != "com.example.IPTVRadio":
+              raise SystemExit(f"Unexpected bundle identifier: {fields['Source-Bundle-Identifier']}")
+          with open(notes_path, "w", encoding="utf-8") as notes:
+              for key, value in fields.items():
+                  notes.write(f"{key}: {value}\n")
+          PY
+
+      - name: Publish public source release from main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_TAG: source-${{ github.run_id }}
+        run: |
+          version=$(sed -n 's/^Source-Version: //p' "$RUNNER_TEMP/source-release-notes.md")
+          build=$(sed -n 's/^Source-Build-Version: //p' "$RUNNER_TEMP/source-release-notes.md")
+          gh release create "$SOURCE_TAG" "release/IPTVRadio-unsigned-device.ipa#Aether.ipa" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Aether $version ($build)" \
+            --notes-file "$RUNNER_TEMP/source-release-notes.md" \
+            --target "$GITHUB_SHA" \
+            --latest=false

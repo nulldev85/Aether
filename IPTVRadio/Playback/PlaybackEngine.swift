@@ -125,6 +125,9 @@ final class PlaybackEngine: ObservableObject {
     /// Only an interruption of active playback may resume automatically.
     private var interruptedStationID: String?
     private var interruptedWhileLoading = false
+    private var audioInterruptionActive = false
+    private var interruptedOnExternalOutput = false
+    private var pausedForRouteLoss = false
     private var interruptionRecoveryTask: Task<Void, Never>?
     /// What became of each stream-format candidate, keyed by its index.
     private var candidateOutcomes: [Int: StreamCandidateReport.Outcome] = [:]
@@ -133,7 +136,7 @@ final class PlaybackEngine: ObservableObject {
     private var startedAtRememberedEndpoint = false
 
     init(
-        player: AudioPlayerControlling = VLCPlayerAdapter(),
+        player: AudioPlayerControlling? = nil,
         audioSession: AudioSessionControlling = AVAudioSessionAdapter(),
         settings: SettingsStore,
         connectivity: ConnectivityMonitor,
@@ -152,7 +155,7 @@ final class PlaybackEngine: ObservableObject {
         networkRecoveryDelay: TimeInterval = 3,
         bufferChangeDelay: TimeInterval = 1.5
     ) {
-        self.player = player
+        self.player = player ?? AetherPlayerAdapter()
         self.audioSession = audioSession
         self.settings = settings
         self.connectivity = connectivity
@@ -213,6 +216,8 @@ final class PlaybackEngine: ObservableObject {
         userPaused = false
         interruptedStationID = nil
         interruptedWhileLoading = false
+        interruptedOnExternalOutput = false
+        pausedForRouteLoss = false
         interruptionRecoveryTask?.cancel()
         interruptionRecoveryTask = nil
         retryAttempts = 0
@@ -227,6 +232,7 @@ final class PlaybackEngine: ObservableObject {
         candidateOutcomes = [:]
         startedAtRememberedEndpoint = false
         streamDiagnostics = nil
+        lastDiagnosticsSample = nil
         nowPlayingMetadata = nil
         probeResultForActiveStation = nil
         activePlaybackURL = nil
@@ -264,6 +270,11 @@ final class PlaybackEngine: ObservableObject {
             player.pause()
             nowPlaying.update(state: state)
         case .paused(let station):
+            // An explicit Play may opt into the phone speaker after unplug.
+            if !audioInterruptionActive {
+                interruptedOnExternalOutput = false
+                pausedForRouteLoss = false
+            }
             resumePausedPlayback(station, recoveringFromInterruption: true)
         case .stopped(let station), .failed(_, let station):
             if let station {
@@ -296,6 +307,8 @@ final class PlaybackEngine: ObservableObject {
         userPaused = false
         interruptedStationID = nil
         interruptedWhileLoading = false
+        interruptedOnExternalOutput = false
+        pausedForRouteLoss = false
         interruptionRecoveryTask?.cancel()
         interruptionRecoveryTask = nil
         // Dropped so a callback still in flight from the torn-down stream
@@ -517,6 +530,7 @@ final class PlaybackEngine: ObservableObject {
         activePlaybackURL = candidate
         let buffer = bufferForCurrentConnection
         activeBuffer = buffer
+        lastDiagnosticsSample = nil
         player.load(url: candidate, bufferDuration: buffer.duration)
         startWatchdog(station: station)
     }
@@ -1027,7 +1041,10 @@ final class PlaybackEngine: ObservableObject {
             songSources: songSourceReports,
             candidates: candidateReports(),
             startedAtRememberedEndpoint: startedAtRememberedEndpoint,
-            buffer: activeBuffer
+            buffer: activeBuffer,
+            playbackEngine: sample.playbackEngine ?? player.engineName,
+            playbackRoute: sample.playbackRoute,
+            bufferIsEstimated: sample.bufferIsEstimated
         )
     }
 
@@ -1136,9 +1153,9 @@ final class PlaybackEngine: ObservableObject {
             nowPlaying.update(state: state, buffering: false)
             nowPlaying.loadArtwork(for: station)
             startSongInfoPolling(for: station)
-            // Emit a diagnostics sample immediately: libVLC exposes no access
-            // log, so this is the only one there will be.
-            handleDiagnosticsSample(StreamDiagnosticsSample(
+            // Fill the UI immediately; the player supplies source-track
+            // diagnostics once its actual audio track is known.
+            handleDiagnosticsSample(lastDiagnosticsSample ?? StreamDiagnosticsSample(
                 streamExtension: activePlaybackURL?.pathExtension ?? "",
                 indicatedBitrate: nil,
                 observedBitrate: nil,
@@ -1330,7 +1347,9 @@ final class PlaybackEngine: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            Task { @MainActor [weak self] in
+            // NotificationCenter delivered on .main. Handle synchronously so
+            // route/interruption ordering is not changed by queued Tasks.
+            MainActor.assumeIsolated {
                 self?.handleInterruption(notification)
             }
         }
@@ -1341,7 +1360,7 @@ final class PlaybackEngine: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            Task { @MainActor [weak self] in
+            MainActor.assumeIsolated {
                 self?.handleRouteChange(notification)
             }
         }
@@ -1352,26 +1371,30 @@ final class PlaybackEngine: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                guard let self, let station = self.state.station, self.wantsPlayback else { return }
+            MainActor.assumeIsolated {
+                guard let self, !self.audioInterruptionActive,
+                      let station = self.state.station, self.wantsPlayback else { return }
                 self.play(station)
             }
         }
         notificationObservers.append(reset)
     }
 
-    private func handleInterruption(_ notification: Notification) {
+    // Internal so regressions can drive exact system-notification ordering.
+    func handleInterruption(_ notification: Notification) {
         guard let info = notification.userInfo,
               let typeRaw = info[AVAudioSessionInterruptionTypeKey] as? UInt,
               let type = AVAudioSession.InterruptionType(rawValue: typeRaw) else { return }
 
         switch type {
         case .began:
+            audioInterruptionActive = true
             switch state {
             case .playing(let station):
                 guard wantsPlayback, !userPaused else { return }
                 interruptedStationID = station.id
                 interruptedWhileLoading = false
+                interruptedOnExternalOutput = audioSession.hasExternalOutput
                 interruptionRecoveryTask?.cancel()
                 interruptionRecoveryTask = nil
                 networkCheckTask?.cancel()
@@ -1384,27 +1407,37 @@ final class PlaybackEngine: ObservableObject {
                 guard wantsPlayback, !userPaused else { return }
                 interruptedStationID = station.id
                 interruptedWhileLoading = true
+                interruptedOnExternalOutput = audioSession.hasExternalOutput
+                interruptionRecoveryTask?.cancel()
+                interruptionRecoveryTask = nil
                 networkCheckTask?.cancel()
                 networkCheckTask = nil
                 cancelWatchdog()
+                cancelRetry()
+                cancelStallWatchdog()
+                probeTask?.cancel()
+                probeTask = nil
                 state = .paused(station)
                 player.pause()
                 nowPlaying.update(state: state)
+            case .paused(let station):
+                // A call can remove AUX before interruption-began arrives.
+                // Keep that system pause distinct from an explicit user pause.
+                guard wantsPlayback, !userPaused, pausedForRouteLoss else { return }
+                interruptedStationID = station.id
+                interruptedWhileLoading = false
+                interruptedOnExternalOutput = true
             default:
                 break
             }
         case .ended:
+            audioInterruptionActive = false
             guard let station = state.station, station.id == interruptedStationID,
                   wantsPlayback, !userPaused else { return }
-            let reload = interruptedWhileLoading
             // Radio was already playing before the interruption. The optional
             // shouldResume hint is often absent for short system sounds; our
             // own pre-interruption state is the reliable intent signal.
-            if reload {
-                play(station)
-            } else {
-                resumePausedPlayback(station, recoveringFromInterruption: true)
-            }
+            resumePausedPlayback(station, recoveringFromInterruption: true)
         @unknown default:
             break
         }
@@ -1415,7 +1448,9 @@ final class PlaybackEngine: ObservableObject {
         recoveringFromInterruption: Bool,
         activationAttempt: Int = 0
     ) {
-        guard wantsPlayback, state.station?.id == station.id else { return }
+        guard wantsPlayback, !audioInterruptionActive,
+              state.station?.id == station.id else { return }
+        let resumingInterruptedStream = interruptedStationID == station.id
         userPaused = false
         networkCheckTask?.cancel()
         networkCheckTask = nil
@@ -1451,31 +1486,47 @@ final class PlaybackEngine: ObservableObject {
             return
         }
 
+        // A real unplug during the call must not resume on the phone speaker.
+        // Reactivation above gives iOS a chance to restore the wired route;
+        // otherwise retain intent until an external route actually returns.
+        guard !resumingInterruptedStream || !interruptedOnExternalOutput || audioSession.hasExternalOutput else { return }
+        let reload = interruptedWhileLoading
         interruptedStationID = nil
         interruptedWhileLoading = false
+        interruptedOnExternalOutput = false
+        pausedForRouteLoss = false
+        if reload {
+            reloadCurrentStream(station)
+            return
+        }
         state = .playing(station)
-        player.play()
+        if resumingInterruptedStream {
+            player.resumeAfterInterruption()
+        } else {
+            player.play()
+        }
         nowPlaying.update(state: state)
         guard recoveringFromInterruption else { return }
 
-        // VLC can report playing while its audio clock is frozen after a
-        // system sound. Give it time to advance, then reload only if silent.
-        let baseline = player.playbackProgress
-        let recoveryDelay = interruptionRecoveryDelay
+        // Incoming bytes are not proof the renderer recovered. An absent
+        // output reading is unconfirmed too, not a reason to skip recovery.
+        let baseline = player.interruptionRecoveryProgress
+        let recoveryDelay = interruptionRecoveryDelay + (activeBuffer?.extraFillTime ?? 0)
         interruptionRecoveryTask?.cancel()
         interruptionRecoveryTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: UInt64(max(0.01, recoveryDelay) * 1_000_000_000))
             guard !Task.isCancelled, let self, self.wantsPlayback,
                   case .playing = self.state,
-                  self.state.station?.id == station.id,
-                  let baseline, let current = self.player.playbackProgress,
-                  current <= baseline else { return }
+                  !self.audioInterruptionActive,
+                  self.state.station?.id == station.id else { return }
+            if let current = self.player.interruptionRecoveryProgress,
+               current > (baseline ?? 0) { return }
             AppLogger.playback.info("Audio did not resume after interruption; reconnecting")
-            self.play(station)
+            self.reloadCurrentStream(station)
         }
     }
 
-    private func handleRouteChange(_ notification: Notification) {
+    func handleRouteChange(_ notification: Notification) {
         guard let info = notification.userInfo,
               let reasonRaw = info[AVAudioSessionRouteChangeReasonKey] as? UInt,
               let reason = AVAudioSession.RouteChangeReason(rawValue: reasonRaw) else { return }
@@ -1483,10 +1534,24 @@ final class PlaybackEngine: ObservableObject {
         currentRouteDescription = AVAudioSession.sharedInstance().currentRoute.outputs
             .first?.portName ?? "Device"
 
+        // Route notifications can precede interruption-ended. Never resume
+        // inside the call or clear the interruption's saved station/intent.
+        guard !audioInterruptionActive else { return }
+        if let station = state.station, station.id == interruptedStationID,
+           wantsPlayback, !userPaused, audioSession.hasExternalOutput {
+            resumePausedPlayback(station, recoveringFromInterruption: true)
+            return
+        }
+
         switch reason {
         case .oldDeviceUnavailable:
             // Headphones unplugged: pause to avoid blasting the speaker.
             if case let .playing(station) = state {
+                // Some adapters deliver the old-route notification after the
+                // call ended and AUX has already been restored. Do not undo a
+                // recovery onto a confirmed external output with that late event.
+                if interruptionRecoveryTask != nil, audioSession.hasExternalOutput { return }
+                pausedForRouteLoss = true
                 interruptedStationID = nil
                 interruptionRecoveryTask?.cancel()
                 interruptionRecoveryTask = nil

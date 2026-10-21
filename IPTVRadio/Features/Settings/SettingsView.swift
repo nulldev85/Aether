@@ -25,9 +25,7 @@ struct SettingsView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("Settings")
-                        .font(AetherTheme.displayFont)
-                        .foregroundStyle(AetherTheme.primaryText)
+                    RadioPageHeading(title: "Settings", subtitle: "Make Aether your own.")
                         .padding(.horizontal, 20)
                     categoryBar
                 }
@@ -37,7 +35,7 @@ struct SettingsView: View {
                     .frame(height: 1)
 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
+                    VStack(alignment: .leading, spacing: AetherTheme.panelGap) {
                         switch selectedCategory {
                         case .account:
                             accountSection
@@ -53,13 +51,13 @@ struct SettingsView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 22)
-                    .padding(.bottom, 32 + flatControlsClearance)
+                    .padding(.bottom, 32)
                 }
                 .scrollIndicators(.hidden)
                 .id(selectedCategory)
             }
             .background(AetherTheme.background.ignoresSafeArea())
-            .toggleStyle(AetherSettingsToggleStyle())
+            .toggleStyle(SwitchToggleStyle(tint: AetherTheme.accent))
             .toolbar(.hidden, for: .navigationBar)
             .alert("Sign out?", isPresented: $confirmSignOut) {
                 Button("Sign Out", role: .destructive) {
@@ -82,14 +80,15 @@ struct SettingsView: View {
                     }
                 } label: {
                     Text(category.rawValue)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.radio(15, .bold))
+                        .lineLimit(1).minimumScaleFactor(0.75)
                         .foregroundStyle(selectedCategory == category
-                            ? AetherTheme.onAccent : AetherTheme.secondaryText)
+                            ? Color.white : AetherTheme.accent)
                         .padding(.vertical, 11)
                         .frame(maxWidth: .infinity)
-                        .background(selectedCategory == category ? AetherTheme.accent : .clear,
-                                    in: RoundedRectangle(cornerRadius: 10))
-                        .contentShape(Rectangle())
+                        .background(selectedCategory == category ? AetherTheme.accent : .clear, in: Capsule())
+                        .overlay(Capsule().strokeBorder(selectedCategory == category ? Color.clear : AetherTheme.accent, lineWidth: 1.5))
+                        .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("settings.category.\(category.rawValue.lowercased())")
@@ -100,58 +99,44 @@ struct SettingsView: View {
         .padding(.bottom, 14)
     }
 
-    private var flatControlsClearance: CGFloat {
-        guard !settings.liquidGlassEnabled else { return 0 }
-        return 61 + (playback.state.station == nil ? 0 : 60)
-    }
-
     private var appearanceSection: some View {
         settingsGroup("Appearance", systemImage: "paintbrush.pointed") {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Color mode")
-                    .font(.subheadline.weight(.medium))
-                Picker("Color mode", selection: $settings.appearance) {
-                    Text("Light").tag(SettingsStore.Appearance.light)
-                    Text("Dark").tag(SettingsStore.Appearance.dark)
-                    Text("System").tag(SettingsStore.Appearance.system)
-                }
-                .pickerStyle(.segmented)
-                .accessibilityIdentifier("settings.appearance")
-            }
-            .aetherSettingsRow()
-            settingsFooter("System follows your iPhone's appearance.")
+            AetherLabeledValue("Appearance", value: "Lineup")
+                .aetherSettingsRow()
+            settingsFooter("Lineup's charcoal panels, rounded type and broadcast-red accent throughout Aether.")
             settingsDivider
-            Toggle("Liquid Glass navigation", isOn: $settings.liquidGlassEnabled)
+            AetherSettingToggle("Liquid Glass navigation", isOn: $settings.liquidGlassEnabled)
                 .accessibilityIdentifier("settings.liquidGlass")
                 .aetherSettingsRow()
-            settingsFooter("Turn off for a flat, full-width tab bar. The change takes effect immediately.")
+            settingsFooter("Turn off for Lineup's compact floating navigation. Liquid Glass is available on iOS 26 and later.")
         }
     }
 
     private var accountSection: some View {
         settingsGroup("Account", systemImage: "person.crop.circle") {
             if let session = activeSessionDescription {
-                LabeledContent("Status", value: session.status)
+                AetherLabeledValue("Status", value: session.status)
                     .aetherSettingsRow()
                 if let expiry = session.expiry {
                     settingsDivider
-                    LabeledContent("Subscription expires", value: expiry)
+                    AetherLabeledValue("Subscription expires", value: expiry)
                         .aetherSettingsRow()
                 }
             } else {
-                LabeledContent("Status", value: "Signed in")
+                AetherLabeledValue("Status", value: "Signed in")
                     .aetherSettingsRow()
             }
             if let warning = auth.insecureEndpointWarning {
                 Label(warning, systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
-                    .font(.footnote)
+                    .font(.radio(.footnote))
                     .aetherSettingsRow()
             }
             settingsDivider
             Button("Sign Out", role: .destructive) {
                 confirmSignOut = true
             }
+            .font(.radio(.body, .medium))
             .foregroundStyle(AetherTheme.destructive)
             .accessibilityIdentifier("settings.signOut")
             .aetherSettingsRow()
@@ -161,15 +146,17 @@ struct SettingsView: View {
     private var playbackSection: some View {
         VStack(spacing: 24) {
             settingsGroup("Streaming", systemImage: "antenna.radiowaves.left.and.right") {
-                Toggle("Allow cellular streaming", isOn: $settings.cellularAllowed)
+                AetherSettingToggle("Allow cellular streaming", isOn: $settings.cellularAllowed)
                     .accessibilityIdentifier("settings.cellular")
                     .aetherSettingsRow()
                 settingsDivider
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text("Cellular buffer")
+                            .font(.radio(.body, .medium))
                         Spacer()
                         Text("\(Int(settings.cellularBuffer)) s")
+                            .font(.radio(.body))
                             .foregroundStyle(AetherTheme.secondaryText)
                     }
                     Slider(value: $settings.cellularBuffer, in: StreamBuffer.cellularRange, step: 1)
@@ -185,8 +172,10 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text("Stream timeout")
+                            .font(.radio(.body, .medium))
                         Spacer()
                         Text("\(Int(settings.streamTimeout)) s")
+                            .font(.radio(.body))
                             .foregroundStyle(AetherTheme.secondaryText)
                     }
                     Slider(value: $settings.streamTimeout, in: 5...60, step: 1)
@@ -199,8 +188,10 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text("Auto-retry attempts")
+                            .font(.radio(.body, .medium))
                         Spacer()
                         Text("\(settings.retryLimit)")
+                            .font(.radio(.body))
                             .foregroundStyle(AetherTheme.secondaryText)
                     }
                     Slider(value: Binding(
@@ -216,13 +207,13 @@ struct SettingsView: View {
                 SleepTimerStatusRow()
                     .aetherSettingsRow()
                 settingsDivider
-                Toggle("Prefer audio-only stream", isOn: $settings.preferAudioOnlyRendition)
+                AetherSettingToggle("Prefer audio-only stream", isOn: $settings.preferAudioOnlyRendition)
                     .accessibilityIdentifier("settings.audioOnly")
                     .aetherSettingsRow()
                 settingsFooter("Uses a dedicated audio track when an HLS stream offers one.")
             }
             settingsGroup("Song information", systemImage: "music.note") {
-                Toggle("Look up song artwork online", isOn: $settings.lookupSongArtwork)
+                AetherSettingToggle("Look up song artwork online", isOn: $settings.lookupSongArtwork)
                     .accessibilityIdentifier("settings.artworkLookup")
                     .aetherSettingsRow()
                 settingsDivider
@@ -237,11 +228,11 @@ struct SettingsView: View {
                 settingsFooter("When the stream has no artwork, Aether can look up the current song in Apple's public catalog. No account or tracking is involved; turn this off for fully offline metadata.")
             }
             settingsGroup("Audio output", systemImage: "hifispeaker") {
-                Toggle("Show Sonos / AirPlay output", isOn: $settings.sonosOutputControl)
+                AetherSettingToggle("Show Sonos / AirPlay output", isOn: $settings.sonosOutputControl)
                     .accessibilityIdentifier("settings.sonosOutput")
                     .aetherSettingsRow()
                 settingsDivider
-                Toggle("Show Bluetooth output", isOn: $settings.bluetoothOutputControl)
+                AetherSettingToggle("Show Bluetooth output", isOn: $settings.bluetoothOutputControl)
                     .accessibilityIdentifier("settings.bluetoothOutput")
                     .aetherSettingsRow()
                 settingsFooter("Now Playing shows one output button. With both switches on, it shows AirPlay; paired Bluetooth audio is also available through iOS audio output controls. Sonos speakers need AirPlay support and the same Wi-Fi network.")
@@ -252,11 +243,11 @@ struct SettingsView: View {
     private var filteringSection: some View {
         VStack(spacing: 24) {
             settingsGroup("Station filtering", systemImage: "line.3.horizontal.decrease") {
-                Toggle("Show only SiriusXM-labelled stations", isOn: $settings.siriusOnly)
+                AetherSettingToggle("Show only SiriusXM-labelled stations", isOn: $settings.siriusOnly)
                     .accessibilityIdentifier("settings.siriusOnly")
                     .aetherSettingsRow()
                 settingsDivider
-                Toggle("Show all detected radio stations", isOn: $settings.showAllStations)
+                AetherSettingToggle("Show all detected radio stations", isOn: $settings.showAllStations)
                     .accessibilityIdentifier("settings.showAll")
                     .aetherSettingsRow()
             }
@@ -275,13 +266,14 @@ struct SettingsView: View {
 
     private var cacheSection: some View {
         settingsGroup("Data", systemImage: "externaldrive") {
-            LabeledContent("Cached data size", value: ByteCountFormatter.string(fromByteCount: Int64(cacheSize), countStyle: .file))
+            AetherLabeledValue("Cached data size", value: ByteCountFormatter.string(fromByteCount: Int64(cacheSize), countStyle: .file))
                 .aetherSettingsRow()
             settingsDivider
             Button("Clear station cache") {
                 library.clearCacheData()
                 cacheCleared = true
             }
+            .font(.radio(.body, .medium))
             .alert("Cache cleared", isPresented: $cacheCleared) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -300,6 +292,14 @@ struct SettingsView: View {
                 settingsNavigationLabel("Privacy & authorization")
             }
             .aetherSettingsRow()
+            settingsDivider
+            NavigationLink {
+                PlaybackLicensesView()
+                    .toolbar(.visible, for: .navigationBar)
+            } label: {
+                settingsNavigationLabel("Playback acknowledgements")
+            }
+            .aetherSettingsRow()
             settingsFooter("No analytics, no tracking. Credentials are stored only in the Keychain and never logged.")
         }
     }
@@ -310,46 +310,40 @@ struct SettingsView: View {
         @ViewBuilder content: () -> Content
     ) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 12) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(AetherTheme.accent)
-                    .frame(width: 28, height: 28)
-                Text(title)
-                    .font(AetherTheme.sectionFont)
-                    .foregroundStyle(AetherTheme.primaryText)
-            }
-            .padding(.bottom, 10)
-
+            AetherPanelHeader(title: title, symbol: systemImage)
+            AetherTheme.divider.frame(height: 1).padding(.bottom, 16)
             content()
+                .padding(.bottom, 18)
         }
-        .foregroundStyle(AetherTheme.secondaryText)
+        .foregroundStyle(AetherTheme.primaryText)
         .tint(AetherTheme.accent)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, AetherTheme.panelInset)
+        .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: AetherTheme.panelRadius, style: .continuous))
     }
 
     private var settingsDivider: some View {
-        AetherTheme.border.opacity(0.55)
+        AetherTheme.divider
             .frame(height: 1)
     }
 
     private func settingsFooter(_ message: String) -> some View {
         Text(message)
-            .font(.footnote)
-            .foregroundStyle(AetherTheme.secondaryText)
+            .font(.radio(13))
+            .foregroundStyle(AetherTheme.mutedIcon)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.top, 8)
     }
 
     private func settingsNavigationLabel(_ title: String) -> some View {
         HStack {
-            Text(title)
+            Text(title).font(.radio(.body, .medium))
             Spacer()
             Image(systemName: "chevron.right")
-                .font(.subheadline.weight(.semibold))
+                .font(.radio(.subheadline, .semibold))
                 .foregroundStyle(AetherTheme.mutedIcon)
         }
-        .foregroundStyle(AetherTheme.secondaryText)
+        .foregroundStyle(AetherTheme.primaryText)
     }
 
     private var cacheSize: Int {
@@ -370,40 +364,9 @@ struct SettingsView: View {
 
 private extension View {
     func aetherSettingsRow() -> some View {
-        frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-            .padding(.vertical, 6)
-    }
-}
-
-/// A muted green track and solid thumb make settings legible on warm paper.
-private struct AetherSettingsToggleStyle: ToggleStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.18)) {
-                configuration.isOn.toggle()
-            }
-        } label: {
-            HStack(spacing: 12) {
-                configuration.label
-                Spacer(minLength: 8)
-                Capsule()
-                    .fill(configuration.isOn ? AetherTheme.accentSoft : AetherTheme.border.opacity(0.7))
-                    .frame(width: 54, height: 30)
-                    .overlay {
-                        Capsule()
-                            .strokeBorder(AetherTheme.accent.opacity(configuration.isOn ? 0.45 : 0.18), lineWidth: 1)
-                    }
-                    .overlay(alignment: configuration.isOn ? .trailing : .leading) {
-                        Circle()
-                            .fill(configuration.isOn ? AetherTheme.accent : AetherTheme.mutedIcon)
-                            .frame(width: 26, height: 26)
-                            .padding(2)
-                    }
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityValue(configuration.isOn ? "On" : "Off")
+        font(.radio(.body, .medium))
+            .fontDesign(.rounded)
+            .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
     }
 }
 
@@ -416,9 +379,9 @@ struct SleepTimerStatusRow: View {
             let remaining = max(0, deadline.timeIntervalSinceNow)
             let minutes = Int(remaining / 60)
             let seconds = Int(remaining.truncatingRemainder(dividingBy: 60))
-            LabeledContent("Sleep timer", value: String(format: "%d:%02d", minutes, seconds))
+            AetherLabeledValue("Sleep timer", value: String(format: "%d:%02d", minutes, seconds))
         } else {
-            LabeledContent("Sleep timer", value: "Off")
+            AetherLabeledValue("Sleep timer", value: "Off")
         }
     }
 }
@@ -435,42 +398,54 @@ struct DetectionRulesEditorView: View {
         Form {
             Section {
                 TextEditor(text: $siriusText)
+                    .font(.radio(.body))
                     .frame(minHeight: 60)
                     .accessibilityLabel("Sirius keywords, one per line")
             } header: {
                 Text("SiriusXM keywords")
+                    .font(.radio(.footnote, .semibold))
             } footer: {
                 Text("Case-insensitive. Matched against station names, groups and EPG ids. One keyword per line.")
+                    .font(.radio(.footnote))
             }
 
             Section {
                 TextEditor(text: $radioGroupText)
+                    .font(.radio(.body))
                     .frame(minHeight: 80)
                     .accessibilityLabel("Radio group keywords, one per line")
             } header: {
                 Text("Radio group keywords")
+                    .font(.radio(.footnote, .semibold))
             } footer: {
                 Text("Group titles (categories) that indicate audio stations, one per line.")
+                    .font(.radio(.footnote))
             }
 
             Section {
                 TextEditor(text: $radioNameText)
+                    .font(.radio(.body))
                     .frame(minHeight: 100)
                     .accessibilityLabel("Radio name keywords, one per line")
             } header: {
                 Text("Radio name keywords")
+                    .font(.radio(.footnote, .semibold))
             } footer: {
                 Text("Channel-name keywords that indicate audio, one per line.")
+                    .font(.radio(.footnote))
             }
 
             Section {
                 TextEditor(text: $videoGroupText)
+                    .font(.radio(.body))
                     .frame(minHeight: 60)
                     .accessibilityLabel("Video group keywords, one per line")
             } header: {
                 Text("Video group keywords")
+                    .font(.radio(.footnote, .semibold))
             } footer: {
                 Text("Group titles that indicate video channels, which are excluded, one per line.")
+                    .font(.radio(.footnote))
             }
 
             Section {
@@ -478,10 +453,10 @@ struct DetectionRulesEditorView: View {
                     settings.resetDetectionRules()
                     loadFields()
                 }
+                .font(.radio(.body, .medium))
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(AetherTheme.background.ignoresSafeArea())
+        .radioSettingsList()
         .navigationTitle("Detection rules")
         .onAppear { loadFields() }
         .onDisappear { saveFields() }
@@ -516,34 +491,34 @@ struct PrivacyNoticeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Image(systemName: "lock.shield")
-                    .font(.system(size: 40))
+                    .font(.radio(40))
                     .foregroundStyle(Color.accentColor)
 
                 Text("Privacy & Authorization")
-                    .font(.title2.weight(.semibold))
+                    .font(.radio(.title2, .semibold))
 
                 Text("Authorization requirement")
-                    .font(.headline)
+                    .font(.radio(.headline))
                 Text("You must hold valid authorization to access any provider streams you configure. Aether also lets you explore publicly listed radio streams in Aether Dial. Stations are operated by third parties and may change or restrict access. The app does not bundle or redistribute their audio, or bypass DRM, authentication, geographic restrictions, or provider limitations.")
-                    .font(.subheadline)
+                    .font(.radio(.subheadline))
                     .foregroundStyle(AetherTheme.secondaryText)
 
                 Text("Your data")
-                    .font(.headline)
+                    .font(.radio(.headline))
                 Text("Credentials (server URL, username, password or playlist URL) are stored exclusively in the iOS Keychain. Station lists and preferences stay on your device. Aether Dial sends the place, genre, and station name you search for to Radio Browser, and a station ID when you listen from the directory. It does not send your provider credentials or private stream URLs there.")
-                    .font(.subheadline)
+                    .font(.radio(.subheadline))
                     .foregroundStyle(AetherTheme.secondaryText)
 
                 Text("No tracking")
-                    .font(.headline)
+                    .font(.radio(.headline))
                 Text("This app contains no analytics, advertising, or third-party tracking SDKs. Logs are scrubbed of usernames, passwords and credential-bearing URLs.")
-                    .font(.subheadline)
+                    .font(.radio(.subheadline))
                     .foregroundStyle(AetherTheme.secondaryText)
 
                 Text("Secure connections")
-                    .font(.headline)
+                    .font(.radio(.headline))
                 Text("HTTPS is preferred. If your provider only offers an unencrypted HTTP endpoint, the app clearly warns you before you continue. Because providers differ, connections to provider-supplied HTTP endpoints (including artwork servers) are allowed; the app still warns you whenever an insecure portal is detected.")
-                    .font(.subheadline)
+                    .font(.radio(.subheadline))
                     .foregroundStyle(AetherTheme.secondaryText)
             }
             .padding()

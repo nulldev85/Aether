@@ -27,6 +27,9 @@ struct ManualRadioView: View {
                     emptyState
                 } else {
                     List {
+                        RadioPageHeading(title: "Radio", subtitle: "\(manualStations.entries.count) stations. In your order.")
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                         ForEach(manualStations.entries.enumerated().map { IndexedManualStation(index: $0.offset, entry: $0.element) }) { item in
                             let entry = item.entry
                             HStack(spacing: 4) {
@@ -45,7 +48,9 @@ struct ManualRadioView: View {
                             .listRowSeparator(.hidden)
                             .swipeActions(edge: .trailing) {
                                 Button("Delete", role: .destructive) { delete(entry) }
+                                    .font(.radio(.body, .medium))
                                 Button("Edit") { editor = EditorTarget(entry: entry) }
+                                    .font(.radio(.body, .medium))
                                     .tint(AetherTheme.accent)
                             }
                             .contextMenu {
@@ -53,11 +58,13 @@ struct ManualRadioView: View {
                                     editor = EditorTarget(entry: entry)
                                 } label: {
                                     Label("Edit Station", systemImage: "pencil")
+                                        .font(.radio(.body, .medium))
                                 }
                                 Button(role: .destructive) {
                                     delete(entry)
                                 } label: {
                                     Label("Delete Station", systemImage: "trash")
+                                        .font(.radio(.body, .medium))
                                 }
                             }
                         }
@@ -67,6 +74,7 @@ struct ManualRadioView: View {
                 }
             }
             .navigationTitle("Radio")
+            .navigationBarTitleDisplayMode(.inline)
             .background(AetherTheme.background.ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -75,9 +83,9 @@ struct ManualRadioView: View {
                     } label: {
                         HStack(spacing: 5) {
                             Image(systemName: "safari")
-                            Text("Dial")
+                            Text("Dial").font(.radio(.subheadline, .semibold))
                         }
-                        .font(.subheadline.weight(.semibold))
+                        .font(.radio(.subheadline, .semibold))
                     }
                     .accessibilityLabel("Aether Dial")
                     .accessibilityIdentifier("manual.dial")
@@ -89,7 +97,7 @@ struct ManualRadioView: View {
                                 isReordering.toggle()
                             } label: {
                                 if isReordering {
-                                    Text("Done")
+                                    Text("Done").font(.radio(.body, .semibold))
                                 } else {
                                     Image(systemName: "arrow.up.arrow.down")
                                         .foregroundStyle(AetherTheme.mutedIcon)
@@ -132,25 +140,24 @@ struct ManualRadioView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 14) {
-            Image(systemName: "antenna.radiowaves.left.and.right")
-                .font(.system(size: 42))
-                .foregroundStyle(AetherTheme.mutedIcon)
+        VStack(alignment: .leading, spacing: 14) {
+            RadioPageHeading(title: "Radio", subtitle: "A place for your own stations.")
+            AetherIconTile(symbol: "antenna.radiowaves.left.and.right", size: 64)
             Text("Your Radio stations")
-                .font(AetherTheme.sectionFont)
+                .font(.radio(20, .bold))
             Text("Add a stream link or find a station in Aether Dial. MP3, AAC, HLS, M3U and PLS links are supported.")
-                .font(.subheadline)
+                .font(.radio(.subheadline))
                 .foregroundStyle(AetherTheme.secondaryText)
-                .multilineTextAlignment(.center)
+                .multilineTextAlignment(.leading)
             Button {
                 editor = EditorTarget()
             } label: {
                 Label("Add Station", systemImage: "plus")
-                    .font(.headline)
+                    .font(.radio(.headline))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(AetherButtonStyle(prominent: true))
             .tint(AetherTheme.accent)
             .accessibilityIdentifier("manual.addEmpty")
             .padding(.top, 8)
@@ -158,16 +165,16 @@ struct ManualRadioView: View {
                 showDial = true
             } label: {
                 Label("Explore Aether Dial", systemImage: "safari")
-                    .font(.headline)
+                    .font(.radio(.headline))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(AetherButtonStyle())
             .tint(AetherTheme.accent)
             .accessibilityIdentifier("manual.dialEmpty")
         }
         .padding(24)
-        .frame(maxWidth: 420, maxHeight: .infinity)
+        .frame(maxWidth: 420, maxHeight: .infinity, alignment: .topLeading)
         .frame(maxWidth: .infinity)
     }
 
@@ -212,47 +219,54 @@ private struct ManualStationEditorView: View {
             Form {
                 Section {
                     TextField("Station name", text: $name)
+                        .font(.radio(.body))
                         .textContentType(.name)
                         .accessibilityIdentifier("manual.name")
                     TextField("Stream URL", text: $streamURL)
+                        .font(.radio(.body))
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .accessibilityIdentifier("manual.url")
                 } header: {
                     Text("Station")
+                        .font(.radio(.footnote, .semibold))
                 } footer: {
                     Text("Use a direct MP3, AAC, AAC+, Ogg, Opus, FLAC or HLS (.m3u8) link, or an M3U/PLS station playlist. HTTP and HTTPS are supported.")
+                        .font(.radio(.footnote))
                 }
-                Section("Optional") {
+                AetherFormSection("Optional") {
                     TextField("Logo URL", text: $logoURL)
+                        .font(.radio(.body))
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .accessibilityIdentifier("manual.artwork")
                     Text("We'll look for the station logo automatically. Paste a logo URL to choose your own.")
-                        .font(.caption)
+                        .font(.radio(.caption))
                         .foregroundStyle(AetherTheme.secondaryText)
                 }
                 if let errorMessage {
                     Section {
                         Label(errorMessage, systemImage: "exclamationmark.circle")
+                            .font(.radio(.body))
                             .foregroundStyle(AetherTheme.destructive)
                             .accessibilityIdentifier("manual.error")
                     }
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(AetherTheme.background.ignoresSafeArea())
+            .radioSettingsList()
             .navigationTitle(entry == nil ? "Add Station" : "Edit Station")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
+                        .buttonStyle(AetherBarButtonStyle())
                         .disabled(isSaving)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Save") { save() }
+                        .buttonStyle(AetherBarButtonStyle(prominent: true))
                         .fontWeight(.semibold)
                         .disabled(isSaving)
                         .accessibilityIdentifier("manual.save")

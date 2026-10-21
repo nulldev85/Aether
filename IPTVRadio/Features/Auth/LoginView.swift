@@ -21,8 +21,10 @@ struct LoginView: View {
                     header
 
                     Picker("Sign-in method", selection: $mode) {
-                        Text("Xtream Codes").tag(SettingsStore.AuthMode.xtream)
-                        Text("M3U Playlist").tag(SettingsStore.AuthMode.m3u)
+                        Text("Xtream Codes").font(.radio(.subheadline, .semibold))
+                            .tag(SettingsStore.AuthMode.xtream)
+                        Text("M3U Playlist").font(.radio(.subheadline, .semibold))
+                            .tag(SettingsStore.AuthMode.m3u)
                     }
                     .pickerStyle(.segmented)
                     .accessibilityIdentifier("login.methodPicker")
@@ -35,7 +37,7 @@ struct LoginView: View {
 
                     if let warning = auth.insecureEndpointWarning {
                         Label(warning, systemImage: "exclamationmark.triangle.fill")
-                            .font(.footnote)
+                            .font(.radio(.footnote))
                             .foregroundStyle(.orange)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .accessibilityIdentifier("login.insecureWarning")
@@ -43,7 +45,7 @@ struct LoginView: View {
 
                     if let error = errorMessage {
                         Label(error, systemImage: "xmark.octagon.fill")
-                            .font(.footnote)
+                            .font(.radio(.footnote))
                             .foregroundStyle(.red)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .accessibilityIdentifier("login.error")
@@ -64,20 +66,7 @@ struct LoginView: View {
     }
 
     private var header: some View {
-        VStack(spacing: 8) {
-            Text("Æ")
-                .font(.system(size: 72, weight: .semibold, design: .serif))
-                .foregroundStyle(AetherTheme.accent)
-                .accessibilityHidden(true)
-            Text("Radio for your IPTV subscription")
-                .font(AetherTheme.sectionFont)
-                .multilineTextAlignment(.center)
-            Text("Sign in with your provider to load its stations. You can also explore public radio in Aether Dial.")
-                .font(.subheadline)
-                .foregroundStyle(AetherTheme.secondaryText)
-                .multilineTextAlignment(.center)
-        }
-        .padding(.top, 24)
+        RadioPageHeading(title: "Aether", subtitle: "Your radio. One place.\nSign in to load your provider's stations.")
     }
 
     private var xtreamForm: some View {
@@ -87,20 +76,20 @@ struct LoginView: View {
                 .keyboardType(.URL)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
-                .textFieldStyle(.roundedBorder)
+                .radioField()
                 .accessibilityIdentifier("login.server")
                 .accessibilityLabel(Text("Server or portal URL"))
             TextField("Username", text: $username)
                 .textContentType(.username)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
-                .textFieldStyle(.roundedBorder)
+                .radioField()
                 .accessibilityIdentifier("login.username")
             SecureField("Password", text: $password)
                 .textContentType(.password)
                 .submitLabel(.go)
                 .onSubmit(signIn)
-                .textFieldStyle(.roundedBorder)
+                .radioField()
                 .accessibilityIdentifier("login.password")
         }
     }
@@ -112,10 +101,10 @@ struct LoginView: View {
                 .keyboardType(.URL)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
-                .textFieldStyle(.roundedBorder)
+                .radioField()
                 .accessibilityIdentifier("login.playlistURL")
             Text("The playlist is downloaded from your own provider. URLs containing embedded credentials are stored only in the Keychain and never logged.")
-                .font(.footnote)
+                .font(.radio(.footnote))
                 .foregroundStyle(AetherTheme.secondaryText)
         }
     }
@@ -128,15 +117,13 @@ struct LoginView: View {
                 if isSigningIn {
                     ProgressView().tint(AetherTheme.onAccent)
                 } else {
-                    Text("Sign In").font(.headline)
+                    Text("Sign In").font(.radio(.headline))
                 }
             }
             .frame(maxWidth: .infinity)
             .frame(height: 44)
         }
-        .background(Color.accentColor)
-        .foregroundStyle(AetherTheme.onAccent)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .buttonStyle(AetherButtonStyle(prominent: true))
         .disabled(isSigningIn)
         .accessibilityIdentifier("login.submit")
     }
@@ -144,16 +131,15 @@ struct LoginView: View {
     private var authorizationNotice: some View {
         VStack(alignment: .leading, spacing: 6) {
             Label("Authorization notice", systemImage: "checkmark.shield")
-                .font(.footnote.weight(.semibold))
+                .font(.radio(.footnote, .semibold))
             Text("You must have valid authorization to access provider streams. Aether does not bundle or redistribute their audio and does not bypass DRM or access restrictions. Public stations in Aether Dial are operated by third parties.")
-                .font(.caption2)
+                .font(.radio(.caption2))
                 .foregroundStyle(AetherTheme.secondaryText)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AetherTheme.raisedSurface)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(AetherTheme.border, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: AetherTheme.panelRadius, style: .continuous))
     }
 
     private func signIn() {

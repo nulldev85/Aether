@@ -10,9 +10,9 @@ struct IPTVRadioApp: App {
         _environment = StateObject(wrappedValue: env)
         let tabAppearance = UITabBarAppearance()
         tabAppearance.configureWithDefaultBackground()
-        tabAppearance.backgroundColor = AetherTheme.uiNavigationSurface.withAlphaComponent(0.94)
-        let inactive = AetherTheme.uiMutedIcon
-        let active = AetherTheme.uiAccent
+        tabAppearance.backgroundColor = AetherTheme.uiNavigationSurface
+        let inactive = UIColor(AetherTheme.caption)
+        let active = UIColor.white
         for itemAppearance in [
             tabAppearance.stackedLayoutAppearance,
             tabAppearance.inlineLayoutAppearance,
@@ -25,24 +25,23 @@ struct IPTVRadioApp: App {
         }
         UITabBar.appearance().standardAppearance = tabAppearance
         UITabBar.appearance().scrollEdgeAppearance = tabAppearance
-        // Match the system tab bar and the optional flat navigation bar.
+        // Match Lineup's neutral selected icons in both navigation styles.
         UITabBar.appearance().tintColor = active
         UITabBar.appearance().unselectedItemTintColor = inactive
 
         let navigationAppearance = UINavigationBarAppearance()
-        navigationAppearance.configureWithTransparentBackground()
-        navigationAppearance.titleTextAttributes = [.foregroundColor: AetherTheme.uiPrimaryText]
-        var largeTitleAttributes: [NSAttributedString.Key: Any] = [.foregroundColor: AetherTheme.uiPrimaryText]
-        let titleFont = UIFont.systemFont(ofSize: 35, weight: .semibold)
-        if let descriptor = titleFont.fontDescriptor.withDesign(.serif) {
-            largeTitleAttributes[.font] = UIFont(descriptor: descriptor, size: 35)
-        }
-        navigationAppearance.largeTitleTextAttributes = largeTitleAttributes
-        navigationAppearance.buttonAppearance.normal.titleTextAttributes = [.foregroundColor: active]
-        navigationAppearance.doneButtonAppearance.normal.titleTextAttributes = [.foregroundColor: active]
+        navigationAppearance.configureWithOpaqueBackground()
+        navigationAppearance.backgroundColor = AetherTheme.uiCanvas
+        navigationAppearance.titleTextAttributes = [.foregroundColor: UIColor.white, .font: AetherTheme.roundedUIFont(17, .heavy)]
+        navigationAppearance.largeTitleTextAttributes = [.foregroundColor: UIColor.white, .font: AetherTheme.roundedUIFont(34, .heavy)]
         UINavigationBar.appearance().standardAppearance = navigationAppearance
         UINavigationBar.appearance().scrollEdgeAppearance = navigationAppearance
-        UINavigationBar.appearance().tintColor = active
+        UINavigationBar.appearance().compactAppearance = navigationAppearance
+        UINavigationBar.appearance().tintColor = .white
+        UITabBarItem.appearance().setTitleTextAttributes([.font: AetherTheme.roundedUIFont(10, .semibold)], for: .normal)
+        UISearchTextField.appearance().font = AetherTheme.roundedUIFont(17, .regular)
+        UISegmentedControl.appearance().setTitleTextAttributes([.font: AetherTheme.roundedUIFont(13, .semibold)], for: .normal)
+        UIBarButtonItem.appearance().setTitleTextAttributes([.font: AetherTheme.roundedUIFont(17, .semibold)], for: .normal)
         AppLogger.app.info("App started")
     }
 
@@ -50,6 +49,8 @@ struct IPTVRadioApp: App {
         WindowGroup {
             ThemedRootView()
                 .foregroundStyle(AetherTheme.primaryText)
+                .environment(\.font, .radio(.body))
+                .fontDesign(.rounded)
                 .environmentObject(environment)
                 .environmentObject(environment.playback)
                 .environmentObject(environment.library)
@@ -65,21 +66,9 @@ struct IPTVRadioApp: App {
 }
 
 private struct ThemedRootView: View {
-    @EnvironmentObject private var settings: SettingsStore
-
     var body: some View {
         RootView()
-            .preferredColorScheme(settings.appearance.colorScheme)
-    }
-}
-
-private extension SettingsStore.Appearance {
-    var colorScheme: ColorScheme? {
-        switch self {
-        case .light: return .light
-        case .dark: return .dark
-        case .system: return nil
-        }
+            .preferredColorScheme(.dark)
     }
 }
 

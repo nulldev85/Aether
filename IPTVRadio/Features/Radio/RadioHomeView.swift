@@ -17,6 +17,7 @@ struct RadioHomeView: View {
                 }
             }
             .navigationTitle("SXM")
+            .navigationBarTitleDisplayMode(.inline)
             .background(AetherTheme.background.ignoresSafeArea())
             .refreshable {
                 await library.refresh()
@@ -28,7 +29,7 @@ struct RadioHomeView: View {
                             AllStationsView(title: "SiriusXM Stations", stations: library.siriusStations)
                         } label: {
                             Text("All \(library.siriusStations.count)")
-                                .font(.subheadline.weight(.semibold))
+                                .font(.radio(.subheadline, .semibold))
                         }
                         .accessibilityIdentifier("radio.seeAll")
                     }
@@ -46,12 +47,15 @@ struct RadioHomeView: View {
                     message: settings.siriusOnly
                         ? "SiriusXM-only filtering is on. Turn it off in Settings to see all detected radio stations."
                         : "No stations matched the SiriusXM rules. Adjust the keywords in Settings if your provider labels them differently.",
-                    systemImage: "sparkles"
+                    systemImage: "antenna.radiowaves.left.and.right"
                 )
             )
         }
         return AnyView(
             List {
+                RadioPageHeading(title: "SiriusXM", subtitle: "\(stations.count) channels from your provider.")
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 ForEach(stations) { station in
                     StationRow(station: station)
                 }
@@ -75,6 +79,7 @@ struct AllStationsView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        .background(AetherTheme.canvas)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
     }

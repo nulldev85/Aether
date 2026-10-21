@@ -32,7 +32,7 @@ struct AetherDialView: View {
                     searchControls
                     resultContent
                     Link("Station directory by Radio Browser", destination: URL(string: "https://www.radio-browser.info/")!)
-                        .font(.caption)
+                        .font(.radio(.caption))
                         .foregroundStyle(AetherTheme.secondaryText)
                         .frame(maxWidth: .infinity)
                         .padding(.bottom, 24)
@@ -47,16 +47,19 @@ struct AetherDialView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
+                        .font(.radio(.body, .semibold))
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 MiniPlayerView(onOpen: { showNowPlaying = true })
+                    .tint(AetherTheme.accent)
             }
             .task {
                 if !hasSearched { await search() }
             }
             .sheet(isPresented: $showNowPlaying) {
                 NowPlayingView()
+                    .tint(AetherTheme.accent)
             }
             .alert("Aether Dial", isPresented: Binding(
                 get: { actionError != nil },
@@ -71,32 +74,24 @@ struct AetherDialView: View {
     }
 
     private var introduction: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Go where the music is.")
-                .font(AetherTheme.displayFont)
-                .foregroundStyle(AetherTheme.primaryText)
-            Text("Explore live stations by place and genre. Listen first, then save the ones you love to Radio.")
-                .font(.subheadline)
-                .foregroundStyle(AetherTheme.secondaryText)
-                .fixedSize(horizontal: false, vertical: true)
-        }
+        RadioPageHeading(title: "Aether Dial", subtitle: "Find a station by place, name or genre.")
     }
 
     private var searchControls: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 7) {
                 Text("PLACE")
-                    .font(.caption.weight(.semibold))
+                    .font(.radio(.caption, .semibold))
                     .tracking(1.4)
                     .foregroundStyle(AetherTheme.secondaryText)
                 TextField("State or country", text: $place)
+                    .font(.radio(.body))
                     .textInputAutocapitalization(.words)
                     .submitLabel(.search)
                     .onSubmit { Task { await search() } }
                     .padding(.horizontal, 14)
                     .frame(height: 48)
-                    .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: 12))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(AetherTheme.border))
+                    .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: AetherTheme.compactRadius, style: .continuous))
                     .disabled(worldwide)
                     .accessibilityIdentifier("dial.place")
                 Text(worldwide
@@ -104,44 +99,43 @@ struct AetherDialView: View {
                      : place.isEmpty
                          ? "Starts in \(homeCountryName). Enter a state or country to travel."
                          : "Searches the directory's country and state listings.")
-                    .font(.caption)
+                    .font(.radio(.caption))
                     .foregroundStyle(AetherTheme.secondaryText)
             }
 
-            Toggle("Explore worldwide", isOn: $worldwide)
-                .font(.subheadline.weight(.medium))
+            AetherSettingToggle("Explore worldwide", isOn: $worldwide, textStyle: .subheadline)
 
             VStack(alignment: .leading, spacing: 7) {
                 Text("STATION NAME")
-                    .font(.caption.weight(.semibold))
+                    .font(.radio(.caption, .semibold))
                     .tracking(1.4)
                     .foregroundStyle(AetherTheme.secondaryText)
                 TextField("Optional", text: $stationName)
+                    .font(.radio(.body))
                     .submitLabel(.search)
                     .onSubmit { Task { await search() } }
                     .padding(.horizontal, 14)
                     .frame(height: 48)
-                    .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: 12))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(AetherTheme.border))
+                    .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: AetherTheme.compactRadius, style: .continuous))
                     .accessibilityIdentifier("dial.name")
             }
 
             VStack(alignment: .leading, spacing: 9) {
                 Text("GENRE")
-                    .font(.caption.weight(.semibold))
+                    .font(.radio(.caption, .semibold))
                     .tracking(1.4)
                     .foregroundStyle(AetherTheme.secondaryText)
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(DialGenre.allCases) { option in
                             Button(option.title) { genre = option }
-                                .font(.subheadline.weight(.medium))
+                                .font(.radio(.subheadline, .medium))
                                 .padding(.horizontal, 15)
                                 .padding(.vertical, 9)
-                                .foregroundStyle(genre == option ? AetherTheme.onAccent : AetherTheme.secondaryText)
-                                .background(genre == option ? AetherTheme.accent : AetherTheme.surface,
+                                .foregroundStyle(genre == option ? AetherTheme.onAccent : AetherTheme.accent)
+                                .background(genre == option ? AetherTheme.accent : .clear,
                                             in: Capsule())
-                                .overlay(Capsule().stroke(genre == option ? Color.clear : AetherTheme.border))
+                                .overlay(Capsule().strokeBorder(genre == option ? Color.clear : AetherTheme.accent, lineWidth: 1.5))
                                 .accessibilityAddTraits(genre == option ? .isSelected : [])
                         }
                     }
@@ -160,17 +154,17 @@ struct AetherDialView: View {
                                 .tint(AetherTheme.accent)
                         }
                         Text(isSearching ? "Exploring…" : "Explore stations")
-                            .font(.subheadline.weight(.semibold))
+                            .font(.radio(.subheadline, .semibold))
                             .foregroundStyle(AetherTheme.primaryText)
                         if !isSearching {
                             Image(systemName: "arrow.right")
-                                .font(.caption.weight(.semibold))
+                                .font(.radio(.caption, .semibold))
                                 .foregroundStyle(AetherTheme.accent)
                         }
                     }
                     .padding(.horizontal, 18)
                     .frame(height: 44)
-                    .background(AetherTheme.surface.opacity(0.72), in: Capsule())
+                    .background(AetherTheme.selected, in: Capsule())
                     .overlay(Capsule().stroke(AetherTheme.border, lineWidth: 1))
                 }
                 .buttonStyle(.plain)
@@ -191,7 +185,7 @@ struct AetherDialView: View {
                         .foregroundStyle(AetherTheme.primaryText)
                     if !results.isEmpty {
                         Text("\(results.count) stations")
-                            .font(.caption)
+                            .font(.radio(.caption))
                             .foregroundStyle(AetherTheme.secondaryText)
                     }
                 }
@@ -203,7 +197,7 @@ struct AetherDialView: View {
                         }
                     } label: {
                         Label("Spin", systemImage: "shuffle")
-                            .font(.subheadline.weight(.semibold))
+                            .font(.radio(.subheadline, .semibold))
                     }
                     .disabled(busyStationID != nil)
                     .accessibilityLabel("Play a surprise station")
@@ -212,14 +206,17 @@ struct AetherDialView: View {
 
             if isSearching && results.isEmpty {
                 ProgressView("Finding stations…")
+                    .font(.radio(.subheadline))
                     .frame(maxWidth: .infinity, minHeight: 140)
             } else if let searchError {
                 VStack(spacing: 12) {
                     Image(systemName: "wifi.exclamationmark")
-                        .font(.title2)
+                        .font(.radio(.title2))
                     Text(searchError)
+                        .font(.radio(.body))
                         .multilineTextAlignment(.center)
                     Button("Try again") { Task { await search() } }
+                        .font(.radio(.body, .medium))
                 }
                 .foregroundStyle(AetherTheme.secondaryText)
                 .frame(maxWidth: .infinity, minHeight: 140)
@@ -227,7 +224,7 @@ struct AetherDialView: View {
                 Text(hasSearched
                      ? "No working stations matched. Try another place, genre, or name."
                      : "Choose a place or genre to start exploring.")
-                    .font(.subheadline)
+                    .font(.radio(.subheadline))
                     .foregroundStyle(AetherTheme.secondaryText)
                     .frame(maxWidth: .infinity, minHeight: 140)
             } else {
@@ -251,17 +248,17 @@ struct AetherDialView: View {
                     StationArtwork(logoURL: station.logoURL, size: 50)
                     VStack(alignment: .leading, spacing: 4) {
                         Text(station.name)
-                            .font(.subheadline.weight(.semibold))
+                            .font(.radio(.subheadline, .semibold))
                             .foregroundStyle(AetherTheme.primaryText)
                             .lineLimit(2)
                         if !station.location.isEmpty {
                             Text(station.location)
-                                .font(.caption)
+                                .font(.radio(.caption))
                                 .foregroundStyle(AetherTheme.secondaryText)
                                 .lineLimit(1)
                         }
                         Text(stationDetails(station))
-                            .font(.caption2)
+                            .font(.radio(.caption2))
                             .foregroundStyle(AetherTheme.mutedIcon)
                             .lineLimit(1)
                     }
@@ -270,7 +267,7 @@ struct AetherDialView: View {
                         ProgressView().controlSize(.small)
                     } else {
                         Image(systemName: playing ? "waveform" : "play.fill")
-                            .font(.subheadline)
+                            .font(.radio(.subheadline))
                             .foregroundStyle(AetherTheme.accent)
                     }
                 }
@@ -284,7 +281,7 @@ struct AetherDialView: View {
                 Task { await save(station) }
             } label: {
                 Image(systemName: saved ? "checkmark.circle.fill" : "plus.circle")
-                    .font(.system(size: 23, weight: .regular))
+                    .font(.radio(23, .regular))
                     .foregroundStyle(saved ? AetherTheme.accent : AetherTheme.mutedIcon)
                     .frame(width: 42, height: 46)
             }

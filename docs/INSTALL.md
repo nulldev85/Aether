@@ -42,7 +42,7 @@ with its own terms. Two notes specific to this app:
 - The default bundle identifier is `com.example.IPTVRadio`. Free Apple ID signing
   needs an identifier unique to you, so override it when re-signing (or build with
   `IPTVRADIO_BUNDLE_IDENTIFIER=com.yourname.IPTVRadio`).
-- VLCKit is an embedded framework. Whatever re-signs the app must re-sign embedded
+- AetherEngine's decoder frameworks are embedded. Whatever re-signs the app must re-sign embedded
   frameworks too, or the app will crash at launch.
 
 ## Install a signed IPA

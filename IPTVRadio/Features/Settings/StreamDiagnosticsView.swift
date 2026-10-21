@@ -15,43 +15,49 @@ struct StreamDiagnosticsView: View {
     var body: some View {
         Form {
             if let diagnostics = playback.streamDiagnostics {
-                Section("Active stream") {
-                    LabeledContent("Station", value: diagnostics.stationName)
-                    LabeledContent(
+                AetherFormSection("Active stream") {
+                    AetherLabeledValue("Station", value: diagnostics.stationName)
+                    if let engine = diagnostics.playbackEngine {
+                        AetherLabeledValue("Playback engine", value: engine)
+                    }
+                    if let route = diagnostics.playbackRoute {
+                        AetherLabeledValue("Playback path", value: route)
+                    }
+                    AetherLabeledValue(
                         "Format",
                         value: "\(formatName(diagnostics.streamType)), option \(diagnostics.formatIndex) of \(diagnostics.formatCount)"
                     )
                     if let buffer = diagnostics.buffer {
-                        LabeledContent("Network buffer", value: bufferValue(buffer))
+                        AetherLabeledValue(diagnostics.bufferIsEstimated ? "Buffer target (estimated)" : "Buffer target", value: bufferValue(buffer))
                     }
-                    LabeledContent("Indicated bitrate", value: bitrate(diagnostics.indicatedBitrate))
-                    LabeledContent("Observed bitrate (download rate)", value: bitrate(diagnostics.observedBitrate))
-                    LabeledContent("Average audio bitrate", value: bitrate(diagnostics.averageAudioBitrate))
-                    LabeledContent("Audio track data rate", value: bitrate(diagnostics.audioTrackDataRate))
+                    AetherLabeledValue("Indicated bitrate", value: bitrate(diagnostics.indicatedBitrate))
+                    AetherLabeledValue("Observed bitrate (download rate)", value: bitrate(diagnostics.observedBitrate))
+                    AetherLabeledValue("Average audio bitrate", value: bitrate(diagnostics.averageAudioBitrate))
+                    AetherLabeledValue("Audio track data rate", value: bitrate(diagnostics.audioTrackDataRate))
                     if let audioFormat = diagnostics.audioFormat {
-                        LabeledContent("Audio format", value: audioFormat)
+                        AetherLabeledValue("Audio format", value: audioFormat)
                     }
-                    LabeledContent("Song info from stream", value: diagnostics.songInfoFromStream ? "Received" : "Not provided")
-                    LabeledContent("Song info source", value: songSourceValue(diagnostics))
-                    LabeledContent("Audio-only rendition", value: audioOnlyValue(diagnostics))
+                    AetherLabeledValue("Song info from stream", value: diagnostics.songInfoFromStream ? "Received" : "Not provided")
+                    AetherLabeledValue("Song info source", value: songSourceValue(diagnostics))
+                    AetherLabeledValue("Audio-only rendition", value: audioOnlyValue(diagnostics))
                     if let variants = diagnostics.availableVariants, variants > 0 {
-                        LabeledContent("Variants in stream", value: "\(variants)")
+                        AetherLabeledValue("Variants in stream", value: "\(variants)")
                     }
                     if let failure = diagnostics.lastFormatFailure {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Skipped a format")
-                                .font(.footnote.weight(.medium))
+                                .font(.radio(.footnote, .medium))
                             Text(failure)
-                                .font(.footnote)
+                                .font(.radio(.footnote))
                                 .foregroundStyle(AetherTheme.secondaryText)
                         }
                         .accessibilityIdentifier("diagnostics.previousFailure")
                     }
                     if let bandwidth = diagnostics.declaredAudioBandwidth {
-                        LabeledContent("Declared audio bandwidth", value: bitrate(bandwidth))
+                        AetherLabeledValue("Declared audio bandwidth", value: bitrate(bandwidth))
                     }
                     if let requests = diagnostics.mediaRequests {
-                        LabeledContent("Media requests", value: "\(requests)")
+                        AetherLabeledValue("Media requests", value: "\(requests)")
                     }
                 }
                 // Rendered whenever a station is playing, not only once a
@@ -63,13 +69,15 @@ struct StreamDiagnosticsView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 LabeledContent {
                                     Text(songOutcomeText(report.outcome))
+                                        .font(.radio(.body))
                                         .foregroundStyle(songOutcomeColor(report.outcome))
                                 } label: {
                                     Text(report.source)
+                                        .font(.radio(.body, .medium))
                                 }
                                 if let detail = report.detail {
                                     Text(detail)
-                                        .font(.caption)
+                                        .font(.radio(.caption))
                                         .foregroundStyle(.secondary)
                                 }
                             }
@@ -79,8 +87,10 @@ struct StreamDiagnosticsView: View {
                         }
                     } header: {
                         Text("Song lookup")
+                            .font(.radio(.footnote, .semibold))
                     } footer: {
                         Text("Where the current track is looked up when the stream carries no metadata, and what each source answered. A show name is not a track: it is shown, but album art is only searched for once both an artist and a title are known.\n\nA status such as “HTTP 404” means the channel could not be matched by name at that source; “no song in response” means it was matched and is not playing a track right now.")
+                            .font(.radio(.footnote))
                     }
                 }
                 if !diagnostics.candidates.isEmpty {
@@ -88,13 +98,15 @@ struct StreamDiagnosticsView: View {
                         ForEach(diagnostics.candidates) { candidate in
                             LabeledContent {
                                 Text(outcomeText(candidate.outcome))
+                                    .font(.radio(.body))
                                     .foregroundStyle(outcomeColor(candidate.outcome))
                             } label: {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("\(candidate.index). \(formatName(candidate.format))")
+                                        .font(.radio(.body, .medium))
                                     if case .failed(let reason) = candidate.outcome, let reason {
                                         Text(reason)
-                                            .font(.caption)
+                                            .font(.radio(.caption))
                                             .foregroundStyle(.secondary)
                                     }
                                 }
@@ -103,43 +115,48 @@ struct StreamDiagnosticsView: View {
                         Button("Retry preferred formats") {
                             playback.retryPreferredFormats()
                         }
+                        .font(.radio(.body, .medium))
                         .accessibilityIdentifier("diagnostics.retryPreferredFormats")
                         Button("Forget format and stop") {
                             playback.forgetRememberedFormat()
                         }
+                        .font(.radio(.body, .medium))
                         .accessibilityIdentifier("diagnostics.forgetRememberedFormat")
                     } header: {
                         Text("Stream formats tried")
+                            .font(.radio(.footnote, .semibold))
                     } footer: {
                         Text("Retrying replays the station straight away, so a connection is open again while the preferred formats are probed — and a panel that caps connections refuses a second one with the same 403 it uses for a format it will not serve. To tell those apart, use “Forget format and stop”, wait a minute for the provider to release the connection, then play the station again: the probe then runs with nothing else open.\n\n"
                              + (diagnostics.startedAtRememberedEndpoint
                              ? "This station starts on a remembered endpoint, so the formats above it are skipped rather than retried. That keeps starts fast, but the audio-only formats (MP3/AAC) are the ones that carry per-song titles — retry to probe them again."
                              : "Formats are tried in order. The audio-only ones (MP3/AAC) are preferred: they carry the original audio and are the only formats that publish per-song titles."))
+                            .font(.radio(.footnote))
                     }
                 }
 
                 Section {
                     Text("Updated \(diagnostics.updatedAt.formatted(date: .omitted, time: .standard))")
-                        .font(.footnote)
+                        .font(.radio(.footnote))
                         .foregroundStyle(AetherTheme.secondaryText)
                 }
             } else {
-                Section("Active stream") {
+                AetherFormSection("Active stream") {
                     Text("No active stream. Play a station to collect diagnostics.")
+                        .font(.radio(.body))
                         .foregroundStyle(AetherTheme.secondaryText)
                 }
             }
 
             Section {
                 Text("This app plays your provider's stream exactly as delivered — no transcoding, EQ or volume processing.\n\n“Observed bitrate” is the recent download rate and is highest right after playback starts; it does not describe audio quality. HLS streams often do not report audio bitrate figures at all.\n\nIf a station keeps pausing for a moment on cellular, raise “Cellular buffer” in Settings ▸ Playback. “Network buffer” above shows the reserve this stream was opened with.\n\nIf audio quality sounds low, switch “Stream format” in Settings ▸ Playback and compare — the format line above shows which option is playing.\n\nIf this station came from an M3U playlist link and sounds worse than another player, sign in with your provider's Xtream portal details (server URL, username, password) instead — that plays the provider's original stream rather than a re-packaged copy.")
-                    .font(.footnote)
+                    .font(.radio(.footnote))
                     .foregroundStyle(AetherTheme.secondaryText)
             } header: {
                 Text("How to read this")
+                    .font(.radio(.footnote, .semibold))
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(AetherTheme.background.ignoresSafeArea())
+        .radioSettingsList()
         .navigationTitle("Stream diagnostics")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -171,14 +188,14 @@ struct StreamDiagnosticsView: View {
         let resolved = ChannelKeyResolver(overrides: appEnvironment.songLookupKeys).keys(for: station)
         VStack(alignment: .leading, spacing: 8) {
             if !resolved.isEmpty {
-                LabeledContent("Channel keys tried", value: resolved.joined(separator: ", "))
-                    .font(.footnote)
+                AetherLabeledValue("Channel keys tried", value: resolved.joined(separator: ", "), textStyle: .footnote)
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text("Channel key for this station")
-                    .font(.footnote.weight(.medium))
+                    .font(.radio(.footnote, .medium))
                 HStack {
                     TextField("e.g. octane", text: $channelKeyDraft)
+                        .font(.radio(.body))
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .accessibilityIdentifier("diagnostics.channelKeyField")
@@ -188,10 +205,11 @@ struct StreamDiagnosticsView: View {
                         // away; a lookup otherwise waits out its 30s interval.
                         playback.retry()
                     }
+                    .font(.radio(.body, .medium))
                     .accessibilityIdentifier("diagnostics.saveChannelKey")
                 }
                 Text("Set this when the keys above come back “HTTP 404” — that means the channel could not be matched by name. Leave it empty to go back to automatic matching.")
-                    .font(.caption)
+                    .font(.radio(.caption))
                     .foregroundStyle(.secondary)
             }
         }
