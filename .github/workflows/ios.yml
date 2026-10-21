@@ -332,3 +332,58 @@ jobs:
   # ---------------------------------------------------------------------------
   # PR validation only needs compile+tests (handled by `test`) so nothing extra.
   # ---------------------------------------------------------------------------
+  source-release:
+    name: Publish public source IPA
+    needs: [test, security-scan, build]
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download completed device IPA
+        uses: actions/download-artifact@v4
+        with:
+          name: IPTVRadio-unsigned-device-ipa
+          path: release
+
+      - name: Read IPA metadata
+        env:
+          IPA: release/IPTVRadio-unsigned-device.ipa
+        run: |
+          python3 - "$IPA" "$RUNNER_TEMP/source-release-notes.md" <<'PY'
+          import os
+          import plistlib
+          import sys
+          import zipfile
+
+          ipa_path, notes_path = sys.argv[1:]
+          with zipfile.ZipFile(ipa_path) as archive:
+              plist = plistlib.loads(archive.read("Payload/IPTVRadio.app/Info.plist"))
+          fields = {
+              "Source-App": "Aether",
+              "Source-Bundle-Identifier": plist["CFBundleIdentifier"],
+              "Source-Version": plist["CFBundleShortVersionString"],
+              "Source-Build-Version": plist["CFBundleVersion"],
+              "Source-Minimum-OS-Version": plist.get("MinimumOSVersion", "") or "unknown",
+              "Source-Branch": "main",
+              "Source-SHA": os.environ["GITHUB_SHA"],
+          }
+          if fields["Source-Bundle-Identifier"] != "com.example.IPTVRadio":
+              raise SystemExit(f"Unexpected bundle identifier: {fields['Source-Bundle-Identifier']}")
+          with open(notes_path, "w", encoding="utf-8") as notes:
+              for key, value in fields.items():
+                  notes.write(f"{key}: {value}\n")
+          PY
+
+      - name: Publish public source release from main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_TAG: source-${{ github.run_id }}
+        run: |
+          version=$(sed -n 's/^Source-Version: //p' "$RUNNER_TEMP/source-release-notes.md")
+          build=$(sed -n 's/^Source-Build-Version: //p' "$RUNNER_TEMP/source-release-notes.md")
+          gh release create "$SOURCE_TAG" "release/IPTVRadio-unsigned-device.ipa#Aether.ipa" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Aether $version ($build)" \
+            --notes-file "$RUNNER_TEMP/source-release-notes.md" \
+            --target "$GITHUB_SHA" \
+            --latest=false
