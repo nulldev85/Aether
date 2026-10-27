@@ -14,6 +14,8 @@ struct StreamDiagnosticsView: View {
 
     var body: some View {
         Form {
+            RadioPageHeading(title: "Under the hood.", subtitle: "What your stream is doing, without the guesswork.", eyebrow: "AETHER / DIAGNOSTICS")
+                .listRowBackground(Color.clear).listRowSeparator(.hidden)
             if let diagnostics = playback.streamDiagnostics {
                 AetherFormSection("Active stream") {
                     AetherLabeledValue("Station", value: diagnostics.stationName)

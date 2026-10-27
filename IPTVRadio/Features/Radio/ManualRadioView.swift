@@ -27,9 +27,12 @@ struct ManualRadioView: View {
                     emptyState
                 } else {
                     List {
-                        RadioPageHeading(title: "Radio", subtitle: "\(manualStations.entries.count) stations. In your order.")
+                        RadioPageHeading(title: "Radio", subtitle: "A dial that's entirely yours.", eyebrow: "AETHER / YOUR AIRWAVES")
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
+                        AetherSectionLabel(title: "In your rotation", detail: "\(manualStations.entries.count) stations")
+                            .listRowBackground(Color.clear).listRowSeparator(.hidden)
                         ForEach(manualStations.entries.enumerated().map { IndexedManualStation(index: $0.offset, entry: $0.element) }) { item in
                             let entry = item.entry
                             HStack(spacing: 4) {
@@ -140,9 +143,18 @@ struct ManualRadioView: View {
     }
 
     private var emptyState: some View {
+        ScrollView {
+            emptyStationContent
+                .padding(20)
+                .frame(maxWidth: 520, alignment: .topLeading)
+                .frame(maxWidth: .infinity)
+        }
+        .scrollIndicators(.hidden)
+    }
+
+    private var emptyStationContent: some View {
         VStack(alignment: .leading, spacing: 14) {
-            RadioPageHeading(title: "Radio", subtitle: "A place for your own stations.")
-            AetherIconTile(symbol: "antenna.radiowaves.left.and.right", size: 64)
+            RadioPageHeading(title: "Radio", subtitle: "A dial that's entirely yours.", eyebrow: "AETHER / YOUR AIRWAVES")
             Text("Your Radio stations")
                 .font(.radio(20, .bold))
             Text("Add a stream link or find a station in Aether Dial. MP3, AAC, HLS, M3U and PLS links are supported.")
@@ -152,10 +164,12 @@ struct ManualRadioView: View {
             Button {
                 editor = EditorTarget()
             } label: {
-                Label("Add Station", systemImage: "plus")
-                    .font(.radio(.headline))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("Add Station", systemImage: "plus").font(.radio(.headline))
+                    Text("Bring a stream you love.").font(.radio(.subheadline))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 10)
             }
             .buttonStyle(AetherButtonStyle(prominent: true))
             .tint(AetherTheme.accent)
@@ -164,18 +178,17 @@ struct ManualRadioView: View {
             Button {
                 showDial = true
             } label: {
-                Label("Explore Aether Dial", systemImage: "safari")
-                    .font(.radio(.headline))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("Explore Aether Dial", systemImage: "safari").font(.radio(.headline))
+                    Text("Find a new corner of the airwaves.").font(.radio(.subheadline))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 10)
             }
             .buttonStyle(AetherButtonStyle())
             .tint(AetherTheme.accent)
             .accessibilityIdentifier("manual.dialEmpty")
         }
-        .padding(24)
-        .frame(maxWidth: 420, maxHeight: .infinity, alignment: .topLeading)
-        .frame(maxWidth: .infinity)
     }
 
     private func delete(_ entry: ManualStationEntry) {
@@ -217,6 +230,8 @@ private struct ManualStationEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
+                RadioPageHeading(title: entry == nil ? "Add a frequency." : "Make it yours.", subtitle: "A name, a stream, a place on your dial.", eyebrow: "AETHER / YOUR STATIONS")
+                    .listRowBackground(Color.clear).listRowSeparator(.hidden)
                 Section {
                     TextField("Station name", text: $name)
                         .font(.radio(.body))

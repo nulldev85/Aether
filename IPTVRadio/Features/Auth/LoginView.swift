@@ -20,13 +20,20 @@ struct LoginView: View {
                 VStack(spacing: 20) {
                     header
 
-                    Picker("Sign-in method", selection: $mode) {
-                        Text("Xtream Codes").font(.radio(.subheadline, .semibold))
-                            .tag(SettingsStore.AuthMode.xtream)
-                        Text("M3U Playlist").font(.radio(.subheadline, .semibold))
-                            .tag(SettingsStore.AuthMode.m3u)
+                    HStack(spacing: 8) {
+                        ForEach(SettingsStore.AuthMode.allCases) { option in
+                            Button { mode = option } label: {
+                                Text(option == .xtream ? "Xtream Codes" : "M3U Playlist")
+                                    .font(.radio(.subheadline, .semibold))
+                                    .frame(maxWidth: .infinity, minHeight: 46)
+                                    .foregroundStyle(mode == option ? AetherTheme.onAccent : AetherTheme.secondaryText)
+                                    .background(mode == option ? AetherTheme.accent : AetherTheme.surface,
+                                                in: RoundedRectangle(cornerRadius: 10))
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityAddTraits(mode == option ? [.isSelected] : [])
+                        }
                     }
-                    .pickerStyle(.segmented)
                     .accessibilityIdentifier("login.methodPicker")
 
                     if mode == .xtream {
@@ -55,7 +62,10 @@ struct LoginView: View {
 
                     authorizationNotice
                 }
-                .padding()
+                .padding(.horizontal, AetherTheme.margin)
+                .padding(.bottom, 32)
+                .frame(maxWidth: 560)
+                .frame(maxWidth: .infinity)
             }
             .background(AetherTheme.background.ignoresSafeArea())
             .navigationTitle("Sign In")
@@ -66,7 +76,7 @@ struct LoginView: View {
     }
 
     private var header: some View {
-        RadioPageHeading(title: "Aether", subtitle: "Your radio. One place.\nSign in to load your provider's stations.")
+        RadioPageHeading(title: "Good sound.\nYour station.", subtitle: "Welcome to Aether. Connect your provider and make yourself at home.", eyebrow: "AETHER / TUNE IN")
     }
 
     private var xtreamForm: some View {
@@ -136,7 +146,7 @@ struct LoginView: View {
                 .font(.radio(.caption2))
                 .foregroundStyle(AetherTheme.secondaryText)
         }
-        .padding(12)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AetherTheme.raisedSurface)
         .clipShape(RoundedRectangle(cornerRadius: AetherTheme.panelRadius, style: .continuous))

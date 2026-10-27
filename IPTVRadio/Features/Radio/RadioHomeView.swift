@@ -53,9 +53,13 @@ struct RadioHomeView: View {
         }
         return AnyView(
             List {
-                RadioPageHeading(title: "SiriusXM", subtitle: "\(stations.count) channels from your provider.")
+                RadioPageHeading(title: "SiriusXM", subtitle: "Your world of sound, on the dial.", eyebrow: "AETHER / THE LINEUP")
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
+                AetherSectionLabel(title: "Channel directory", detail: "\(stations.count) stations")
+                    .listRowBackground(Color.clear).listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
                 ForEach(stations) { station in
                     StationRow(station: station)
                 }
@@ -73,6 +77,8 @@ struct AllStationsView: View {
 
     var body: some View {
         List {
+            AetherSectionLabel(title: "Channel directory", detail: "\(stations.count) stations")
+                .listRowBackground(Color.clear).listRowSeparator(.hidden)
             ForEach(stations) { station in
                 StationRow(station: station)
             }

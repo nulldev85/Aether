@@ -32,13 +32,13 @@ struct StationRow: View {
                 Task { await service.registerClick(stationID: directoryID) }
             }
         } label: {
-            HStack(spacing: 14) {
+            HStack(spacing: 16) {
                 StationArtwork(logoURL: displayedStation.logoURL, size: 54)
                     .frame(width: 64, height: 64)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(station.name)
-                        .font(.radio(17, .medium))
+                        .font(.radio(17, .semibold))
                         .foregroundStyle(AetherTheme.primaryText)
                         .lineLimit(2)
                     if !station.groupTitle.isEmpty {
@@ -63,15 +63,20 @@ struct StationRow: View {
                         .font(.radio(19, .medium))
                         .foregroundStyle(favorites.isFavorite(station) ? AetherTheme.accent : AetherTheme.mutedIcon)
                         .frame(width: 44, height: 44)
+                        .overlay(Circle().strokeBorder(AetherTheme.divider, lineWidth: 1))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(favorites.isFavorite(station) ? "Remove from favorites" : "Add to favorites")
                 .accessibilityIdentifier("station.favorite.\(station.name)")
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(isCurrent ? AetherTheme.selected : AetherTheme.surface,
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(isCurrent ? AetherTheme.selected : .clear,
                         in: RoundedRectangle(cornerRadius: AetherTheme.compactRadius, style: .continuous))
+            .overlay(alignment: .bottom) {
+                AetherTheme.divider.opacity(0.7).frame(height: 0.5)
+                    .padding(.leading, 92)
+            }
             .overlay(alignment: .leading) {
                 if isCurrent {
                     Rectangle().fill(AetherTheme.accent)
@@ -83,7 +88,7 @@ struct StationRow: View {
         .buttonStyle(.plain)
         .listRowBackground(Color.clear)
         .listRowSeparator(.hidden)
-        .listRowInsets(EdgeInsets(top: 7, leading: 20, bottom: 7, trailing: 20))
+        .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
         .accessibilityIdentifier("station.row.\(station.name)")
         .accessibilityElement(children: .combine)
         .accessibilityHint("Plays this station")

@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Lineup iPhone reference: 97ce5e768b4f33f3271e9f2c27eec2beda93ab3f.
-/// One fixed dark palette for every Aether screen, sheet and player surface.
+/// After Hours: ink, warm ivory and copper. One dark identity, not a
+/// system-dependent palette. SF Pro Rounded is intentionally unchanged.
 enum AetherTheme {
     static func rgb(_ value: UInt32) -> UIColor {
         UIColor(red: CGFloat((value >> 16) & 255) / 255,
@@ -9,35 +9,34 @@ enum AetherTheme {
                 blue: CGFloat(value & 255) / 255, alpha: 1)
     }
 
-    static let uiCanvas = rgb(0x1C1C1E)
-    static let uiNavigationSurface = rgb(0x2C2C2E)
-    static let uiPrimaryText = rgb(0xFFFFFF)
-    static let uiMutedIcon = rgb(0x9E9EA5)
-    static let uiAccent = rgb(0xFF3347)
+    static let uiCanvas = rgb(0x0B0D0C)
+    static let uiNavigationSurface = rgb(0x161B18)
+    static let uiPrimaryText = rgb(0xF4F1EA)
+    static let uiMutedIcon = rgb(0x9BA497)
+    static let uiAccent = rgb(0xEFA66A)
     static let canvas = Color(uiColor: uiCanvas)
     static let surface = Color(uiColor: uiNavigationSurface)
     static let navigationSurface = surface
-    static let primaryText = Color.white
-    static let secondaryText = Color.white.opacity(0.66)
-    static let caption = Color(uiColor: rgb(0xCCCCCC))
+    static let primaryText = Color(uiColor: uiPrimaryText)
+    static let secondaryText = Color(uiColor: rgb(0xB2B9B0))
+    static let caption = Color(uiColor: rgb(0xCDD3C8))
     static let mutedIcon = Color(uiColor: uiMutedIcon)
     static let accent = Color(uiColor: uiAccent)
-    static let onAccent = Color.white
-    // LineupAccent.red.soft: 45% white mixed into broadcast red.
-    static let accentSoft = Color(uiColor: rgb(0xFF8F9A))
-    static let selected = Color(uiColor: rgb(0x3A3A3C))
-    static let divider = Color(uiColor: rgb(0x404043))
-    static let border = Color.white.opacity(0.09)
+    static let onAccent = canvas
+    static let accentSoft = Color(uiColor: rgb(0xF7CEAB))
+    static let selected = Color(uiColor: rgb(0x26312A))
+    static let divider = Color(uiColor: rgb(0x354138))
+    static let border = Color(uiColor: rgb(0x354138))
     static let destructive = Color(uiColor: rgb(0xFF453A))
     static let tabBar = surface
-    static let raisedSurface = surface
+    static let raisedSurface = Color(uiColor: rgb(0x202822))
     static let background = canvas
     static let logoShadow = Color.white.opacity(0.48)
-    static let panelRadius: CGFloat = 24
-    static let compactRadius: CGFloat = 14
+    static let panelRadius: CGFloat = 18
+    static let compactRadius: CGFloat = 10
     static let margin: CGFloat = 20
-    static let panelInset: CGFloat = 20
-    static let panelGap: CGFloat = 14
+    static let panelInset: CGFloat = 18
+    static let panelGap: CGFloat = 24
     static let displayFont = Font.radio(.largeTitle, .heavy)
     static let sectionFont = Font.radio(.title3, .bold)
 
@@ -59,8 +58,8 @@ extension Font {
 }
 
 enum AetherNavigationLayout {
-    // MobileLineupNavigationLayout: 20-point margins, 4-point padding,
-    // 54-point items, and a 20-point physical bottom gap on home-indicator phones.
+    // The new dock retains the tested single-owner clearance and safe-area
+    // arithmetic. Appearance must not recreate the old navigation overlap.
     static let sideMargin: CGFloat = 20
     static let padding: CGFloat = 4
     static let itemHeight: CGFloat = 54

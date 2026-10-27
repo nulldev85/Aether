@@ -14,7 +14,7 @@ struct MiniPlayerView: View {
     var body: some View {
         Group {
             if let station = playback.state.station {
-                HStack(spacing: 12) {
+                HStack(spacing: 8) {
                     Button {
                         onOpen()
                     } label: {
@@ -23,18 +23,18 @@ struct MiniPlayerView: View {
                                 artwork: playback.nowPlayingMetadata?.artworkImage ?? stationLogo,
                                 isSpinning: playback.state.isPlaying && scenePhase == .active && !reduceMotion
                             )
-                            .frame(width: 44, height: 44)
+                            .frame(width: 46, height: 46)
                             .clipShape(Circle())
                             .accessibilityHidden(true)
 
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: 3) {
                                 Text(playback.nowPlayingMetadata?.title ?? station.name)
-                                    .font(.radio(.subheadline, .semibold))
+                                    .font(.radio(.subheadline, .bold))
                                     .foregroundStyle(AetherTheme.primaryText)
                                     .lineLimit(1)
                                 Text(playback.nowPlayingMetadata?.artist ?? stateDescription)
                                     .font(.radio(.caption2))
-                                    .foregroundStyle(AetherTheme.secondaryText)
+                                    .foregroundStyle(AetherTheme.accentSoft)
                                     .lineLimit(1)
                             }
 
@@ -56,9 +56,10 @@ struct MiniPlayerView: View {
                         playback.togglePlayPause()
                     } label: {
                         Image(systemName: iconName)
-                            .font(.radio(.title3))
+                            .font(.radio(18, .bold))
                             .frame(width: 44, height: 44)
-                            .background(AetherTheme.selected, in: Circle())
+                            .foregroundStyle(AetherTheme.onAccent)
+                            .background(AetherTheme.accent, in: RoundedRectangle(cornerRadius: 10))
                     }
                     .accessibilityLabel(toggleAccessibilityLabel)
                     .accessibilityIdentifier("miniplayer.toggle")
@@ -67,17 +68,21 @@ struct MiniPlayerView: View {
                         playback.stop()
                     } label: {
                         Image(systemName: "stop.fill")
-                            .font(.radio(.title3))
+                            .font(.radio(14, .semibold))
+                            .foregroundStyle(AetherTheme.mutedIcon)
                             .frame(width: 44, height: 44)
                     }
                     .accessibilityLabel("Stop")
                     .accessibilityIdentifier("miniplayer.stop")
                 }
                 .padding(.horizontal, 12)
-                .padding(.vertical, 12)
+                .padding(.vertical, 11)
                 .foregroundStyle(AetherTheme.primaryText)
-                .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: AetherTheme.panelRadius, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: AetherTheme.panelRadius, style: .continuous).strokeBorder(AetherTheme.divider, lineWidth: 0.5))
+                .background(AetherTheme.raisedSurface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 1).fill(AetherTheme.accent)
+                        .frame(width: 2, height: 26).padding(.leading, 1)
+                }
                 .padding(.horizontal, AetherTheme.margin)
                 .task(id: station.id) {
                     stationLogo = nil

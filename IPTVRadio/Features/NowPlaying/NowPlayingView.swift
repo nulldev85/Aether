@@ -2,7 +2,7 @@ import SwiftUI
 import AVKit
 import MediaPlayer
 
-/// Lineup's neutral panels and rounded controls around Aether's original disc.
+/// After-hours listening room around Aether's unchanged spinning disc.
 struct NowPlayingView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
@@ -65,6 +65,7 @@ struct NowPlayingView: View {
                 .padding(.vertical, 8)
             }
             .scrollIndicators(.hidden)
+            .accessibilityIdentifier("nowplaying.detailsScroll")
         }
         .padding(.horizontal, AetherTheme.margin)
         .padding(.bottom, 8)
@@ -84,21 +85,22 @@ struct NowPlayingView: View {
             controlRow
             outputControls
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 18)
         .padding(.vertical, NowPlayingLayout.controlVerticalPadding)
         .frame(maxWidth: 440)
-        .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: AetherTheme.panelRadius, style: .continuous))
+        .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(AetherTheme.divider, lineWidth: 1))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("nowplaying.controls")
     }
 
     private var header: some View {
         HStack(spacing: 10) {
-            AetherIconTile(symbol: "music.note")
-            Text("Now Playing").font(.radio(17, .heavy))
+            AetherIconTile(symbol: "dot.radiowaves.left.and.right")
+            Text("Now Playing").font(.radio(17, .heavy)).tracking(0.2)
             Spacer()
             Button { dismiss() } label: {
-                Image(systemName: "xmark").frame(width: 16, height: 20)
+                Image(systemName: "chevron.down").frame(width: 16, height: 20)
             }
             .buttonStyle(AetherBarButtonStyle())
             .accessibilityLabel("Close now playing")
@@ -111,18 +113,18 @@ struct NowPlayingView: View {
     private func trackDetails(for station: RadioStation) -> some View {
         VStack(spacing: 8) {
             HStack(spacing: 6) {
-                Circle().fill(playback.state.isPlaying ? AetherTheme.accent : AetherTheme.mutedIcon)
-                    .frame(width: 6, height: 6)
-                Text(status).font(.radio(12, .bold)).tracking(0.6)
+                Rectangle().fill(playback.state.isPlaying ? AetherTheme.accent : AetherTheme.mutedIcon)
+                    .frame(width: 12, height: 3)
+                Text(status).font(.radio(11, .heavy)).tracking(1.8)
             }
-            .foregroundStyle(AetherTheme.caption)
+            .foregroundStyle(AetherTheme.accent)
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("nowplaying.status")
 
             if let metadata = playback.nowPlayingMetadata,
                metadata.title != nil || metadata.artist != nil {
                 if let title = metadata.title {
-                    Text(title).font(.radio(.title2, .bold))
+                    Text(title).font(.radio(.title2, .heavy))
                         .accessibilityIdentifier("nowplaying.songTitle")
                 }
                 if let artist = metadata.artist {
@@ -161,7 +163,7 @@ struct NowPlayingView: View {
             Button { playback.previousStation() } label: {
                 Image(systemName: "backward.end.fill").font(.radio(22, .semibold))
                     .frame(width: NowPlayingLayout.skipButtonSize, height: NowPlayingLayout.skipButtonSize)
-                    .background(AetherTheme.selected, in: Circle())
+                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(AetherTheme.divider, lineWidth: 1))
             }
             .accessibilityLabel("Previous station")
             .accessibilityIdentifier("nowplaying.previous")
@@ -176,8 +178,8 @@ struct NowPlayingView: View {
             } label: {
                 Image(systemName: mainButtonIcon).font(.radio(28, .semibold))
                     .frame(width: NowPlayingLayout.transportButtonSize, height: NowPlayingLayout.transportButtonSize)
-                    .foregroundStyle(.white)
-                    .background(AetherTheme.accent, in: Circle())
+                    .foregroundStyle(AetherTheme.onAccent)
+                    .background(AetherTheme.accent, in: RoundedRectangle(cornerRadius: 16))
             }
             .accessibilityLabel(mainButtonLabel)
             .accessibilityIdentifier(mainButtonIsStop ? "nowplaying.stop" : "nowplaying.toggle")
@@ -185,7 +187,7 @@ struct NowPlayingView: View {
             Button { playback.nextStation() } label: {
                 Image(systemName: "forward.end.fill").font(.radio(22, .semibold))
                     .frame(width: NowPlayingLayout.skipButtonSize, height: NowPlayingLayout.skipButtonSize)
-                    .background(AetherTheme.selected, in: Circle())
+                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(AetherTheme.divider, lineWidth: 1))
             }
             .accessibilityLabel("Next station")
             .accessibilityIdentifier("nowplaying.next")
@@ -321,6 +323,8 @@ struct SleepTimerSheet: View {
     var body: some View {
         NavigationStack {
             List {
+                AetherSectionLabel(title: "Sleep timer", detail: "Switch off, drift off.")
+                    .listRowBackground(Color.clear).listRowSeparator(.hidden)
                 Section {
                     ForEach(options, id: \.self) { minutes in
                         Button {

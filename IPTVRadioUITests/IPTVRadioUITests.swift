@@ -46,6 +46,7 @@ final class IPTVRadioUITests: XCTestCase {
 
         let serverField = app.textFields["login.server"]
         XCTAssertTrue(serverField.waitForExistence(timeout: 10))
+        capture(app, name: "After Hours — Sign in")
 
         serverField.tap()
         serverField.typeText("https://demo.example.net:8080")
@@ -98,6 +99,26 @@ final class IPTVRadioUITests: XCTestCase {
         capture(app, name: "Shell — Search")
     }
 
+    func testGenreShortcutsUseRealStationSearchAndClearReturnsToDiscovery() throws {
+        let app = launch(scenario: "UITestSearch")
+        app.buttons["Search"].tap()
+        let shortcut = app.buttons["search.suggestion.jazz"]
+        XCTAssertTrue(shortcut.waitForExistence(timeout: 8))
+        capture(app, name: "After Hours — Search discovery")
+        shortcut.tap()
+        let field = app.textFields["search.field"]
+        XCTAssertEqual(field.value as? String, "Jazz")
+        XCTAssertTrue(app.staticTexts["Jazz Cafe Radio"].waitForExistence(timeout: 8))
+        XCTAssertFalse(app.buttons["station.row.SiriusXM Hits 1"].exists)
+        app.buttons["Clear search"].tap()
+        XCTAssertTrue(shortcut.waitForExistence(timeout: 8))
+        let clearedValue = try XCTUnwrap(field.value as? String)
+        XCTAssertTrue(clearedValue.isEmpty || clearedValue == field.placeholderValue,
+                      "An empty native field may expose its placeholder, but must not retain the query")
+        app.buttons["Radio"].tap()
+        XCTAssertTrue(app.buttons["manual.addEmpty"].waitForExistence(timeout: 8))
+    }
+
     func testManualRadioStationCanBeAddedPlayedAndRemoved() throws {
         let app = launch(scenario: "UITestBrowse")
         XCTAssertTrue(app.staticTexts["Your Radio stations"].waitForExistence(timeout: 8))
@@ -106,6 +127,7 @@ final class IPTVRadioUITests: XCTestCase {
         app.buttons["manual.addEmpty"].tap()
         let name = app.textFields["manual.name"]
         XCTAssertTrue(name.waitForExistence(timeout: 8))
+        capture(app, name: "After Hours — Station editor")
         name.tap()
         name.typeText("My Test Radio")
         let url = app.textFields["manual.url"]
@@ -129,6 +151,7 @@ final class IPTVRadioUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Aether Dial"].waitForExistence(timeout: 8))
         XCTAssertTrue(app.textFields["dial.place"].exists)
         XCTAssertTrue(app.buttons["dial.search"].exists)
+        capture(app, name: "After Hours — Dial")
         XCTAssertTrue(app.buttons["Listen to Dial Jazz"].waitForExistence(timeout: 8))
         app.swipeUp()
         app.buttons["Listen to Dial Jazz"].tap()
@@ -246,7 +269,7 @@ final class IPTVRadioUITests: XCTestCase {
         }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [rotated], timeout: 8), .completed)
         assertBottomPlayerControls(app)
-        let scroller = app.scrollViews.firstMatch
+        let scroller = app.scrollViews["nowplaying.detailsScroll"]
         XCTAssertTrue(scroller.waitForExistence(timeout: 8), "Short layouts must allow the record and details to scroll")
         let card = app.descendants(matching: .any).matching(identifier: "nowplaying.controls").firstMatch
         let before = card.frame

@@ -24,8 +24,8 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                VStack(alignment: .leading, spacing: 16) {
-                    RadioPageHeading(title: "Settings", subtitle: "Make Aether your own.")
+                VStack(alignment: .leading, spacing: 0) {
+                    RadioPageHeading(title: "Settings", subtitle: "The details. Just how you like them.", eyebrow: "AETHER / YOUR SETUP")
                         .padding(.horizontal, 20)
                     categoryBar
                 }
@@ -72,7 +72,7 @@ struct SettingsView: View {
     }
 
     private var categoryBar: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 12) {
             ForEach(SettingsCategory.allCases) { category in
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -80,15 +80,17 @@ struct SettingsView: View {
                     }
                 } label: {
                     Text(category.rawValue)
-                        .font(.radio(15, .bold))
+                        .font(.radio(14, .bold))
                         .lineLimit(1).minimumScaleFactor(0.75)
                         .foregroundStyle(selectedCategory == category
-                            ? Color.white : AetherTheme.accent)
-                        .padding(.vertical, 11)
+                            ? AetherTheme.primaryText : AetherTheme.mutedIcon)
+                        .padding(.vertical, 14)
                         .frame(maxWidth: .infinity)
-                        .background(selectedCategory == category ? AetherTheme.accent : .clear, in: Capsule())
-                        .overlay(Capsule().strokeBorder(selectedCategory == category ? Color.clear : AetherTheme.accent, lineWidth: 1.5))
-                        .contentShape(Capsule())
+                        .overlay(alignment: .bottom) {
+                            Rectangle().fill(selectedCategory == category ? AetherTheme.accent : .clear)
+                                .frame(height: 2)
+                        }
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("settings.category.\(category.rawValue.lowercased())")
@@ -96,19 +98,19 @@ struct SettingsView: View {
             }
         }
         .padding(.horizontal, 20)
-        .padding(.bottom, 14)
+        .padding(.bottom, 0)
     }
 
     private var appearanceSection: some View {
         settingsGroup("Appearance", systemImage: "paintbrush.pointed") {
-            AetherLabeledValue("Appearance", value: "Lineup")
+            AetherLabeledValue("Appearance", value: "After Hours")
                 .aetherSettingsRow()
-            settingsFooter("Lineup's charcoal panels, rounded type and broadcast-red accent throughout Aether.")
+            settingsFooter("Ink-dark surfaces, warm ivory type and a copper accent. Always dark, always Aether.")
             settingsDivider
             AetherSettingToggle("Liquid Glass navigation", isOn: $settings.liquidGlassEnabled)
                 .accessibilityIdentifier("settings.liquidGlass")
                 .aetherSettingsRow()
-            settingsFooter("Turn off for Lineup's compact floating navigation. Liquid Glass is available on iOS 26 and later.")
+            settingsFooter("Turn off for the solid studio dock. Liquid Glass is available on iOS 26 and later.")
         }
     }
 
@@ -311,15 +313,17 @@ struct SettingsView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             AetherPanelHeader(title: title, symbol: systemImage)
-            AetherTheme.divider.frame(height: 1).padding(.bottom, 16)
-            content()
-                .padding(.bottom, 18)
+            VStack(alignment: .leading, spacing: 0) {
+                content()
+            }
+            .padding(.horizontal, AetherTheme.panelInset)
+            .padding(.vertical, 8)
+            .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: AetherTheme.panelRadius))
+            .overlay(RoundedRectangle(cornerRadius: AetherTheme.panelRadius).strokeBorder(AetherTheme.divider, lineWidth: 0.5))
         }
         .foregroundStyle(AetherTheme.primaryText)
         .tint(AetherTheme.accent)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, AetherTheme.panelInset)
-        .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: AetherTheme.panelRadius, style: .continuous))
     }
 
     private var settingsDivider: some View {
@@ -396,9 +400,13 @@ struct DetectionRulesEditorView: View {
 
     var body: some View {
         Form {
+            RadioPageHeading(title: "Fine-tune\nyour lineup.", subtitle: "How your provider labels radio, in your own words.", eyebrow: "AETHER / DETECTION RULES")
+                .listRowBackground(Color.clear).listRowSeparator(.hidden)
             Section {
                 TextEditor(text: $siriusText)
                     .font(.radio(.body))
+                    .scrollContentBackground(.hidden)
+                    .listRowBackground(AetherTheme.surface)
                     .frame(minHeight: 60)
                     .accessibilityLabel("Sirius keywords, one per line")
             } header: {
@@ -412,6 +420,8 @@ struct DetectionRulesEditorView: View {
             Section {
                 TextEditor(text: $radioGroupText)
                     .font(.radio(.body))
+                    .scrollContentBackground(.hidden)
+                    .listRowBackground(AetherTheme.surface)
                     .frame(minHeight: 80)
                     .accessibilityLabel("Radio group keywords, one per line")
             } header: {
@@ -425,6 +435,8 @@ struct DetectionRulesEditorView: View {
             Section {
                 TextEditor(text: $radioNameText)
                     .font(.radio(.body))
+                    .scrollContentBackground(.hidden)
+                    .listRowBackground(AetherTheme.surface)
                     .frame(minHeight: 100)
                     .accessibilityLabel("Radio name keywords, one per line")
             } header: {
@@ -438,6 +450,8 @@ struct DetectionRulesEditorView: View {
             Section {
                 TextEditor(text: $videoGroupText)
                     .font(.radio(.body))
+                    .scrollContentBackground(.hidden)
+                    .listRowBackground(AetherTheme.surface)
                     .frame(minHeight: 60)
                     .accessibilityLabel("Video group keywords, one per line")
             } header: {
@@ -490,12 +504,7 @@ struct PrivacyNoticeView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Image(systemName: "lock.shield")
-                    .font(.radio(40))
-                    .foregroundStyle(Color.accentColor)
-
-                Text("Privacy & Authorization")
-                    .font(.radio(.title2, .semibold))
+                RadioPageHeading(title: "Your listening.\nYour business.", subtitle: "Privacy & Authorization", eyebrow: "AETHER / PRIVACY")
 
                 Text("Authorization requirement")
                     .font(.radio(.headline))

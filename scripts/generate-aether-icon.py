@@ -14,10 +14,10 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "IPTVRadio/Assets.xcassets/AppIcon.appiconset/AppIcon.png"
 SIDE = 1024
 SCALE = 3
-FOREST = "#1C1C1E"
-PAPER = "#FFFFFF"
-GROOVE = "#9E9EA5"
-SPINDLE = "#FF3347"
+FOREST = "#0B0D0C"
+PAPER = "#F4F1EA"
+GROOVE = "#9BA497"
+SPINDLE = "#EFA66A"
 
 
 def px(value: int) -> int:
@@ -35,7 +35,7 @@ def canvas() -> Image.Image:
             distance = (((x - 20) / 105) ** 2 + ((y - 8) / 105) ** 2) ** 0.5
             pixels[x, y] = max(0, round(100 * (1 - distance) ** 2))
     glow = glow.resize((size, size), Image.Resampling.BICUBIC)
-    image.paste("#2C2C2E", (0, 0, size, size), glow)
+    image.paste("#202822", (0, 0, size, size), glow)
     return image
 
 

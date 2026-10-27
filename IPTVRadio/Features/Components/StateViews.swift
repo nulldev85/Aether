@@ -12,8 +12,8 @@ struct LoadingStateView: View {
                 .font(.radio(.subheadline))
                 .foregroundStyle(AetherTheme.secondaryText)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 48)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 36)
         .accessibilityElement(children: .combine)
     }
 }
@@ -24,7 +24,7 @@ struct EmptyStateView: View {
     var systemImage: String = "dot.radiowaves.left.and.right"
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             AetherIconTile(symbol: systemImage, size: 64)
             Text(title)
                 .font(AetherTheme.sectionFont)
@@ -32,10 +32,10 @@ struct EmptyStateView: View {
             Text(message)
                 .font(.radio(.subheadline))
                 .foregroundStyle(AetherTheme.secondaryText)
-                .multilineTextAlignment(.center)
+                .multilineTextAlignment(.leading)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 48)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 36)
         .padding(.horizontal, 24)
         .accessibilityElement(children: .combine)
     }
@@ -45,9 +45,9 @@ struct OfflineStateView: View {
     var onRetry: () -> Void
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             Image(systemName: "wifi.slash")
-                .font(.radio(40))
+                .font(.radio(32))
                 .foregroundStyle(AetherTheme.mutedIcon)
                 .accessibilityHidden(true)
             Text("You're offline")
@@ -55,13 +55,13 @@ struct OfflineStateView: View {
             Text("Cached stations are shown. Reconnect and pull to refresh for the latest lineup.")
                 .font(.radio(.subheadline))
                 .foregroundStyle(AetherTheme.secondaryText)
-                .multilineTextAlignment(.center)
+                .multilineTextAlignment(.leading)
             Button("Try Again", action: onRetry)
                 .buttonStyle(AetherButtonStyle(prominent: true))
                 .accessibilityIdentifier("state.retry")
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 48)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 36)
         .padding(.horizontal, 24)
     }
 }
@@ -70,9 +70,9 @@ struct ExpiredSessionStateView: View {
     var onRetry: () -> Void
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             Image(systemName: "clock.badge.exclamationmark")
-                .font(.radio(40))
+                .font(.radio(32))
                 .foregroundStyle(.orange)
                 .accessibilityHidden(true)
             Text("Session expired")
@@ -80,12 +80,12 @@ struct ExpiredSessionStateView: View {
             Text("Your subscription session appears to have expired. Refresh your credentials or contact your provider.")
                 .font(.radio(.subheadline))
                 .foregroundStyle(AetherTheme.secondaryText)
-                .multilineTextAlignment(.center)
+                .multilineTextAlignment(.leading)
             Button("Refresh", action: onRetry)
                 .buttonStyle(AetherButtonStyle(prominent: true))
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 48)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 36)
         .padding(.horizontal, 24)
     }
 }
@@ -95,9 +95,9 @@ struct ErrorStateView: View {
     var onRetry: () -> Void
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
-                .font(.radio(40))
+                .font(.radio(32))
                 .foregroundStyle(.orange)
                 .accessibilityHidden(true)
             Text("Something went wrong")
@@ -105,13 +105,13 @@ struct ErrorStateView: View {
             Text(message)
                 .font(.radio(.subheadline))
                 .foregroundStyle(AetherTheme.secondaryText)
-                .multilineTextAlignment(.center)
+                .multilineTextAlignment(.leading)
             Button("Try Again", action: onRetry)
                 .buttonStyle(AetherButtonStyle(prominent: true))
                 .accessibilityIdentifier("state.retry")
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 48)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 36)
         .padding(.horizontal, 24)
     }
 }

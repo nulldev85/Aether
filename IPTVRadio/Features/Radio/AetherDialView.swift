@@ -74,7 +74,7 @@ struct AetherDialView: View {
     }
 
     private var introduction: some View {
-        RadioPageHeading(title: "Aether Dial", subtitle: "Find a station by place, name or genre.")
+        RadioPageHeading(title: "Further afield.", subtitle: "Local voices. Distant cities. Find something new.", eyebrow: "AETHER / EXPLORE THE DIAL")
     }
 
     private var searchControls: some View {
@@ -131,11 +131,11 @@ struct AetherDialView: View {
                             Button(option.title) { genre = option }
                                 .font(.radio(.subheadline, .medium))
                                 .padding(.horizontal, 15)
-                                .padding(.vertical, 9)
+                                .frame(minHeight: 44)
                                 .foregroundStyle(genre == option ? AetherTheme.onAccent : AetherTheme.accent)
                                 .background(genre == option ? AetherTheme.accent : .clear,
-                                            in: Capsule())
-                                .overlay(Capsule().strokeBorder(genre == option ? Color.clear : AetherTheme.accent, lineWidth: 1.5))
+                                            in: RoundedRectangle(cornerRadius: 8))
+                                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(genre == option ? Color.clear : AetherTheme.divider, lineWidth: 1))
                                 .accessibilityAddTraits(genre == option ? .isSelected : [])
                         }
                     }
@@ -151,26 +151,24 @@ struct AetherDialView: View {
                         if isSearching {
                             ProgressView()
                                 .controlSize(.small)
-                                .tint(AetherTheme.accent)
+                                .tint(AetherTheme.onAccent)
                         }
                         Text(isSearching ? "Exploring…" : "Explore stations")
                             .font(.radio(.subheadline, .semibold))
-                            .foregroundStyle(AetherTheme.primaryText)
+                            .foregroundStyle(AetherTheme.onAccent)
                         if !isSearching {
                             Image(systemName: "arrow.right")
                                 .font(.radio(.caption, .semibold))
-                                .foregroundStyle(AetherTheme.accent)
+                                .foregroundStyle(AetherTheme.onAccent)
                         }
                     }
                     .padding(.horizontal, 18)
-                    .frame(height: 44)
-                    .background(AetherTheme.selected, in: Capsule())
-                    .overlay(Capsule().stroke(AetherTheme.border, lineWidth: 1))
+                    .frame(maxWidth: .infinity, minHeight: 48)
+                    .background(AetherTheme.accent, in: RoundedRectangle(cornerRadius: 10))
                 }
                 .buttonStyle(.plain)
                 .disabled(isSearching)
                 .accessibilityIdentifier("dial.search")
-                Spacer(minLength: 0)
             }
         }
     }

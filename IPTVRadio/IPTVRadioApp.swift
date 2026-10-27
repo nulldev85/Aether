@@ -12,7 +12,7 @@ struct IPTVRadioApp: App {
         tabAppearance.configureWithDefaultBackground()
         tabAppearance.backgroundColor = AetherTheme.uiNavigationSurface
         let inactive = UIColor(AetherTheme.caption)
-        let active = UIColor.white
+        let active = AetherTheme.uiAccent
         for itemAppearance in [
             tabAppearance.stackedLayoutAppearance,
             tabAppearance.inlineLayoutAppearance,
@@ -25,19 +25,20 @@ struct IPTVRadioApp: App {
         }
         UITabBar.appearance().standardAppearance = tabAppearance
         UITabBar.appearance().scrollEdgeAppearance = tabAppearance
-        // Match Lineup's neutral selected icons in both navigation styles.
+        // The native option shares the studio dock's copper selection color.
         UITabBar.appearance().tintColor = active
         UITabBar.appearance().unselectedItemTintColor = inactive
 
         let navigationAppearance = UINavigationBarAppearance()
         navigationAppearance.configureWithOpaqueBackground()
         navigationAppearance.backgroundColor = AetherTheme.uiCanvas
-        navigationAppearance.titleTextAttributes = [.foregroundColor: UIColor.white, .font: AetherTheme.roundedUIFont(17, .heavy)]
-        navigationAppearance.largeTitleTextAttributes = [.foregroundColor: UIColor.white, .font: AetherTheme.roundedUIFont(34, .heavy)]
+        navigationAppearance.titleTextAttributes = [.foregroundColor: AetherTheme.uiPrimaryText, .font: AetherTheme.roundedUIFont(17, .heavy)]
+        navigationAppearance.largeTitleTextAttributes = [.foregroundColor: AetherTheme.uiPrimaryText, .font: AetherTheme.roundedUIFont(34, .heavy)]
         UINavigationBar.appearance().standardAppearance = navigationAppearance
         UINavigationBar.appearance().scrollEdgeAppearance = navigationAppearance
         UINavigationBar.appearance().compactAppearance = navigationAppearance
-        UINavigationBar.appearance().tintColor = .white
+        UINavigationBar.appearance().tintColor = AetherTheme.uiAccent
+        UISegmentedControl.appearance().selectedSegmentTintColor = UIColor(AetherTheme.selected)
         UITabBarItem.appearance().setTitleTextAttributes([.font: AetherTheme.roundedUIFont(10, .semibold)], for: .normal)
         UISearchTextField.appearance().font = AetherTheme.roundedUIFont(17, .regular)
         UISegmentedControl.appearance().setTitleTextAttributes([.font: AetherTheme.roundedUIFont(13, .semibold)], for: .normal)

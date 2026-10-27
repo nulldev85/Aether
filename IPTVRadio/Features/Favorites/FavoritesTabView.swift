@@ -18,9 +18,13 @@ struct FavoritesTabView: View {
                     )
                 } else {
                     List {
-                        RadioPageHeading(title: "Favorites", subtitle: "\(favorites.favorites.count) saved stations. Always close at hand.")
+                        RadioPageHeading(title: "Favorites", subtitle: "The stations you keep coming back to.", eyebrow: "AETHER / ON REPEAT")
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
+                        AetherSectionLabel(title: "Your rotation", detail: "\(favorites.favorites.count) saved")
+                            .listRowBackground(Color.clear).listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
                         ForEach(favorites.favorites.enumerated().map { IndexedFavorite(index: $0.offset, entry: $0.element) }) { item in
                             let entry = item.entry
                             HStack(spacing: 4) {

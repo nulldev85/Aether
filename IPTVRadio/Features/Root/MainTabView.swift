@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// One persistent TabView for both of Lineup's navigation appearances.
+/// One persistent TabView for Aether's studio dock and optional native bar.
 /// The audio session, selected station and vinyl do not depend on tab changes.
 struct MainTabView: View {
     @EnvironmentObject private var settings: SettingsStore
@@ -28,8 +28,7 @@ struct MainTabView: View {
                 tabContent(safeAreaBottom: proxy.safeAreaInsets.bottom) { SettingsView() }
                     .tabItem { Label("Settings", systemImage: "gearshape") }.tag(AetherTab.settings)
             }
-            // Lineup keeps selected navigation icons white, not accent colored.
-            .tint(.white)
+            .tint(AetherTheme.accent)
             .overlay(alignment: .bottom) {
                 if !nativeNavigation {
                     VStack(spacing: AetherNavigationLayout.playerGap) {
@@ -37,7 +36,7 @@ struct MainTabView: View {
                             MiniPlayerView(onOpen: { showNowPlaying = true })
                                 .frame(height: playerHeight)
                         }
-                        LineupRadioTabBar(selection: $selectedTab)
+                        AetherStudioTabBar(selection: $selectedTab)
                     }
                     .padding(.bottom, AetherNavigationLayout.bottomGap(safeAreaBottom: proxy.safeAreaInsets.bottom))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
@@ -99,9 +98,8 @@ private enum AetherTab: Int, CaseIterable, Identifiable {
     }
 }
 
-/// Matches MobileLineupNavigationBar's capsule, selected well, spacing,
-/// rounded labels and neutral icons. Destinations remain Aether's own.
-private struct LineupRadioTabBar: View {
+/// A low studio rail with an active copper marker, not floating pill buttons.
+private struct AetherStudioTabBar: View {
     @Binding var selection: AetherTab
     @ScaledMetric(relativeTo: .caption2) private var labelSize: CGFloat = 10
 
@@ -113,16 +111,19 @@ private struct LineupRadioTabBar: View {
                     UISelectionFeedbackGenerator().selectionChanged()
                     selection = tab
                 } label: {
-                    VStack(spacing: 3) {
+                    VStack(spacing: 4) {
                         Image(systemName: selected && tab == .favorites ? "heart.fill" : tab.symbol)
-                            .font(.radio(22, .semibold)).frame(width: 25, height: 24)
+                            .font(.radio(19, .semibold)).frame(width: 25, height: 23)
                         Text(tab.title).font(.radio(labelSize, .semibold))
                             .lineLimit(1).minimumScaleFactor(0.75)
                     }
-                    .foregroundStyle(selected ? Color.white : AetherTheme.caption)
+                    .foregroundStyle(selected ? AetherTheme.accent : AetherTheme.mutedIcon)
                     .frame(maxWidth: .infinity, minHeight: AetherNavigationLayout.itemHeight)
-                    .background(selected ? AetherTheme.selected : .clear, in: Capsule())
-                    .contentShape(Capsule())
+                    .overlay(alignment: .top) {
+                        RoundedRectangle(cornerRadius: 1).fill(selected ? AetherTheme.accent : .clear)
+                            .frame(width: 20, height: 2)
+                    }
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(AetherNavigationButtonStyle())
                 .accessibilityLabel(tab.title)
@@ -132,8 +133,8 @@ private struct LineupRadioTabBar: View {
             }
         }
         .padding(AetherNavigationLayout.padding)
-        .background(AetherTheme.surface, in: Capsule())
-        .overlay(Capsule().strokeBorder(AetherTheme.divider, lineWidth: 1).allowsHitTesting(false))
+        .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(AetherTheme.divider, lineWidth: 1).allowsHitTesting(false))
         .padding(.horizontal, AetherNavigationLayout.sideMargin)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Main navigation")
