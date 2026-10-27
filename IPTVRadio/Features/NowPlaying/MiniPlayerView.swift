@@ -40,6 +40,7 @@ struct MiniPlayerView: View {
 
                             Spacer(minLength: 4)
                         }
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("miniplayer.open")
@@ -72,6 +73,7 @@ struct MiniPlayerView: View {
                             .font(.radio(14, .semibold))
                             .foregroundStyle(AetherTheme.mutedIcon)
                             .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
                     }
                     .accessibilityLabel("Stop")
                     .accessibilityIdentifier("miniplayer.stop")
@@ -81,6 +83,10 @@ struct MiniPlayerView: View {
                 .foregroundStyle(AetherTheme.primaryText)
                 .background(AetherTheme.canvas)
                 .overlay(alignment: .top) { AetherTheme.divider.frame(height: 0.5) }
+                // The shelf is a container, not an accessibility modifier
+                // forwarded onto each independently operable child button.
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Radio player")
                 .accessibilityIdentifier("aether.playback.shelf")
                 .task(id: station.id) {
                     stationLogo = nil

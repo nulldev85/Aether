@@ -7,6 +7,14 @@ final class IPTVRadioUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    override func tearDownWithError() throws {
+        if testRun?.hasSucceeded == false {
+            // Mock scenarios contain no real provider credentials. Keep the
+            // failing native tree in the job log, not only a binary xcresult.
+            print("Failed UI hierarchy:\n\(XCUIApplication().debugDescription)")
+        }
+    }
+
     private func launch(scenario: String, extraArguments: [String] = []) -> XCUIApplication {
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication()
@@ -167,8 +175,22 @@ final class IPTVRadioUITests: XCTestCase {
         let app = launch(scenario: "UITestBrowse")
         app.buttons["manual.dialEmpty"].tap()
         XCTAssertTrue(app.navigationBars["Aether Dial"].waitForExistence(timeout: 8))
-        app.descendants(matching: .any).matching(identifier: "dial.filters").firstMatch.tap()
-        XCTAssertTrue(app.textFields["dial.place"].exists)
+        let filters = app.buttons["dial.filters"]
+        XCTAssertTrue(filters.waitForExistence(timeout: 8))
+        XCTAssertEqual(filters.value as? String, "Collapsed")
+        filters.tap()
+        let place = app.textFields["dial.place"]
+        XCTAssertTrue(place.waitForExistence(timeout: 8))
+        XCTAssertEqual(filters.value as? String, "Expanded")
+        XCTAssertTrue(place.isHittable)
+        place.tap()
+        place.typeText("California")
+        filters.tap()
+        XCTAssertTrue(place.waitForNonExistence(timeout: 8))
+        XCTAssertEqual(filters.value as? String, "Collapsed")
+        filters.tap()
+        XCTAssertTrue(place.waitForExistence(timeout: 8))
+        XCTAssertEqual(place.value as? String, "California", "Collapsing filters must preserve the listener's input")
         XCTAssertTrue(app.buttons["dial.search"].exists)
         capture(app, name: "Workspace — Dial")
         XCTAssertTrue(app.buttons["Listen to Dial Jazz"].waitForExistence(timeout: 8))
@@ -381,6 +403,15 @@ final class IPTVRadioUITests: XCTestCase {
         let mini = app.buttons["miniplayer.open"].firstMatch
         XCTAssertTrue(mini.waitForExistence(timeout: 8))
         let header = app.descendants(matching: .any).matching(identifier: "aether.navigation.header").firstMatch
+        let shelf = app.descendants(matching: .any).matching(identifier: "aether.playback.shelf").firstMatch
+        XCTAssertTrue(shelf.waitForExistence(timeout: 8))
+        for identifier in ["miniplayer.open", "miniplayer.toggle", "miniplayer.stop"] {
+            let control = shelf.buttons.matching(identifier: identifier)
+            XCTAssertEqual(control.count, 1, "Each player action must retain its own identity within the shelf")
+            XCTAssertTrue(control.firstMatch.isHittable)
+            XCTAssertGreaterThanOrEqual(control.firstMatch.frame.width, 44)
+            XCTAssertGreaterThanOrEqual(control.firstMatch.frame.height, 44)
+        }
         XCTAssertTrue(header.waitForExistence(timeout: 8))
         XCTAssertLessThanOrEqual(header.frame.maxY, mini.frame.minY,
                                  "Navigation at the top and playback at the bottom must not overlap")

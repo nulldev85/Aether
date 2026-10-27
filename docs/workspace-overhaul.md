@@ -1,4 +1,4 @@
-# Aether workspace overhaul — 1.2.0 (4)
+# Aether workspace overhaul — 1.2.0 (5)
 
 Active design specification. The user asked for a completely different look
 and feel, minimal, sleek, professional and dim. The previous Graphite layout
@@ -65,3 +65,40 @@ Local validation: 19 design/preservation checks, seven package-verifier
 regressions, both original credential scripts, actionlint and diff checks
 passed. There is no new signing, workflow gate, backend or package dependency.
 Settings shows both version and build so the installed revision can be checked.
+
+## Build 5: accessibility repair
+
+After the user reported run 40592542055 failed at 4be37ad, its completed jobs
+and simulator job 122500193154 log were inspected. Compilation and all 307
+unit tests passed. Of 15 UI tests, eight passed and seven failed. Six failures
+stopped at a missing `miniplayer.open`; the other was Dial's location field.
+The unit/UI step took 17m50s. Device packaging was skipped.
+
+Downloaded the existing test-results artifact 12775248879, verified its source
+SHA, and decoded its saved XCTest accessibility snapshots locally. In the
+Now Playing scenario, Open (175x54), Pause (44x44) and Stop (44x44) buttons were
+present with the expected playing-station value, but all three had the parent
+`aether.playback.shelf` identifier. The new shelf HStack needed an explicit
+accessibility container. `.accessibilityElement(children: .contain)` now gives
+the parent its own element and retains independently accessible child actions.
+Apple documents this child behavior at:
+https://developer.apple.com/documentation/swiftui/accessibilitychildbehavior/contain
+
+Dial's group-wide filter identifier was replaced by an identifier on the actual
+expand/collapse button. Expanded fields keep their own identifiers. The view
+keeps the same filter state, values, layout and existing search implementation.
+The UI regression now enters a location, collapses/reopens and checks that its
+value persists. The workspace regression requires all three distinct player
+buttons within the shelf, with their actual >=44-point frames and hittability.
+Failed UI scenarios now print their native hierarchy so future failures can be
+diagnosed from the job log. All 15 UI tests and original thresholds remain.
+
+The earlier login regression, favorite-action isolation, grid reordering,
+SXM/search and settings/account tests passed in the inspected run. Player
+presentation/transport and deletion assertions were not reached in the six
+blocked scenarios and remain unverified until the replacement run completes.
+No playback, vinyl, font, dependency, credential or workflow-gate changes.
+
+Build-5 local checks: all 20 design/preservation tests and seven synthetic
+package-verifier tests passed, as did the two unchanged credential scripts,
+official actionlint and diff checks. Native SDK/UI verification remains pending.

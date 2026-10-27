@@ -210,8 +210,19 @@ class RadioDesignTests(unittest.TestCase):
         self.assertIn("settings.liquidGlassEnabled", navigation)
         mini = source("IPTVRadio/Features/NowPlaying/MiniPlayerView.swift")
         self.assertIn('accessibilityIdentifier("aether.playback.shelf")', mini)
+        self.assertIn('.accessibilityElement(children: .contain)\n                .accessibilityLabel("Radio player")\n                .accessibilityIdentifier("aether.playback.shelf")', mini)
+        for control in ("open", "toggle", "stop"):
+            self.assertEqual(mini.count(f'accessibilityIdentifier("miniplayer.{control}")'), 1)
         self.assertNotIn("RoundedRectangle(", mini)
         self.assertNotIn(".padding(.horizontal, AetherTheme.margin)", mini)
+
+    def test_dial_filter_identifier_belongs_to_the_disclosure_button_not_its_fields(self):
+        dial = source("IPTVRadio/Features/Radio/AetherDialView.swift")
+        self.assertNotIn("DisclosureGroup(isExpanded:", dial)
+        toggle = dial.split("Button { filtersExpanded.toggle() }", 1)[1].split("if filtersExpanded {", 1)[0]
+        self.assertIn('accessibilityIdentifier("dial.filters")', toggle)
+        self.assertIn('accessibilityValue(filtersExpanded ? "Expanded" : "Collapsed")', toggle)
+        self.assertIn('accessibilityIdentifier("dial.place")', dial.split("if filtersExpanded {", 1)[1])
 
     def test_presets_settings_pages_and_unboxed_controls_replace_the_old_structure(self):
         for path in ("Radio/ManualRadioView.swift", "Favorites/FavoritesTabView.swift"):
