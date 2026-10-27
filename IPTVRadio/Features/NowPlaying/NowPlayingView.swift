@@ -13,31 +13,38 @@ struct NowPlayingView: View {
     @State private var stationLogo: UIImage?
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            if let station = playback.state.station {
-                recordContent(for: station)
-                    .task(id: station.id) {
-                        stationLogo = nil
-                        guard let url = station.logoURL else { return }
-                        stationLogo = await ArtworkCache.shared.image(for: url)
-                    }
-            } else {
-                EmptyStateView(title: "Nothing playing", message: "Pick a station to start listening.", systemImage: "music.note")
-                    .frame(maxHeight: .infinity)
+        // One explicit screen container owns both the content and its bottom
+        // inset, so accessibility queries cannot select the shelf behind it.
+        ZStack {
+            VStack(spacing: 0) {
+                header
+                if let station = playback.state.station {
+                    recordContent(for: station)
+                        .task(id: station.id) {
+                            stationLogo = nil
+                            guard let url = station.logoURL else { return }
+                            stationLogo = await ArtworkCache.shared.image(for: url)
+                        }
+                } else {
+                    EmptyStateView(title: "Nothing playing", message: "Pick a station to start listening.", systemImage: "music.note")
+                        .frame(maxHeight: .infinity)
+                }
             }
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if playback.state.station != nil {
-                controlCard
-                    .padding(.horizontal, AetherTheme.margin)
-                    .padding(.top, 12)
-                    .padding(.bottom, 12)
-                    .frame(maxWidth: .infinity)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if playback.state.station != nil {
+                    controlCard
+                        .padding(.horizontal, AetherTheme.margin)
+                        .padding(.top, 12)
+                        .padding(.bottom, 12)
+                        .frame(maxWidth: .infinity)
+                }
             }
         }
         .foregroundStyle(AetherTheme.primaryText)
         .background(AetherTheme.background.ignoresSafeArea())
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Now playing")
+        .accessibilityIdentifier("nowplaying.screen")
         .presentationDragIndicator(.visible)
         .sheet(isPresented: $showSleepTimerSheet) { SleepTimerSheet() }
     }

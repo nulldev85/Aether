@@ -1,4 +1,4 @@
-# Aether workspace overhaul — 1.2.0 (5)
+# Aether workspace overhaul — 1.2.0 (6)
 
 Active design specification. The user asked for a completely different look
 and feel, minimal, sleek, professional and dim. The previous Graphite layout
@@ -102,3 +102,35 @@ No playback, vinyl, font, dependency, credential or workflow-gate changes.
 Build-5 local checks: all 20 design/preservation tests and seven synthetic
 package-verifier tests passed, as did the two unchanged credential scripts,
 official actionlint and diff checks. Native SDK/UI verification remains pending.
+
+## Build 6: scope full-player geometry checks
+
+The user reported run 40596888426 at 495228a failed. Read its completed jobs
+once and simulator job 122514954501 log once. Compilation, all 307 unit tests
+and 14 of 15 UI tests passed, including the player control identities, Dial
+input/collapse preservation, manual add/play/delete and compact player controls.
+The unit/UI step took 16m49s; packaging was skipped.
+
+The sole failure was the full-player record's horizontal-center assertion:
+the unscoped first-match query selected the persistent mini-player's record
+behind the modal (frame24,752,54,54; centerX51). The same failure hierarchy shows
+the actual full-player record at40,193.3,313,313 (centerX196.5 on a393-point
+screen). Its centerY349.8 also matches the existing expected349.65 within3pt.
+No artwork layout or playback-engine bug was inferred from that failed selector.
+
+The presented player now has its own explicit accessibility container/ID.
+Record, status, transport and compact-scroll queries are scoped to that screen;
+tests require exactly one presented screen and one record within it. Original
+horizontal2pt, vertical3pt, square1pt and >=44pt touch-target checks remain.
+Closing/swiping must actually remove the presented screen before mini-player
+checks, because background elements can remain in the native hierarchy.
+
+Failure logging now checks totalFailureCount rather than hasSucceeded during
+teardown; the latter was still false while successful cases were finishing.
+This avoids dumping successful hierarchies. All15 UI tests remain enabled.
+Only accessibility metadata/test selection and build numbering changed. Vinyl,
+font, geometry, playback, icon, palette, dependencies and CI gates are unchanged.
+
+Build-6 local validation: 21 design/preservation tests and seven package tests
+passed. Both credential scripts, official actionlint and diff checks passed.
+No Apple SDK is installed locally; the replacement SDK/UI run remains pending.

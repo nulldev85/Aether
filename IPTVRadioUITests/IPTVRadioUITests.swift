@@ -8,7 +8,7 @@ final class IPTVRadioUITests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-        if testRun?.hasSucceeded == false {
+        if (testRun?.totalFailureCount ?? 0) > 0 {
             // Mock scenarios contain no real provider credentials. Keep the
             // failing native tree in the job log, not only a binary xcresult.
             print("Failed UI hierarchy:\n\(XCUIApplication().debugDescription)")
@@ -46,8 +46,16 @@ final class IPTVRadioUITests: XCTestCase {
         link.tap()
     }
 
+    private func nowPlayingScreen(_ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) -> XCUIElement {
+        let screens = app.descendants(matching: .any).matching(identifier: "nowplaying.screen")
+        XCTAssertTrue(screens.firstMatch.waitForExistence(timeout: 8), file: file, line: line)
+        XCTAssertEqual(screens.count, 1, "Use the presented player, not the persistent shelf behind it", file: file, line: line)
+        return screens.firstMatch
+    }
+
     private func assertBottomPlayerControls(_ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
-        let card = app.descendants(matching: .any).matching(identifier: "nowplaying.controls").firstMatch
+        let player = nowPlayingScreen(app, file: file, line: line)
+        let card = player.descendants(matching: .any).matching(identifier: "nowplaying.controls").firstMatch
         XCTAssertTrue(card.waitForExistence(timeout: 8), file: file, line: line)
         XCTAssertEqual(card.frame.midX, app.frame.midX, accuracy: 2, file: file, line: line)
         XCTAssertLessThanOrEqual(card.frame.height, 142, "The old control card was 176 points tall", file: file, line: line)
@@ -55,15 +63,15 @@ final class IPTVRadioUITests: XCTestCase {
         XCTAssertGreaterThanOrEqual(bottomGap, 12, "Respect the bottom safe area", file: file, line: line)
         XCTAssertLessThanOrEqual(bottomGap, 90, "Controls belong at the bottom, not under the track in mid-screen", file: file, line: line)
         for name in ["nowplaying.previous", "nowplaying.stop", "nowplaying.next"] {
-            let button = app.buttons[name]
+            let button = player.buttons[name]
             XCTAssertTrue(button.isHittable, file: file, line: line)
             XCTAssertGreaterThanOrEqual(button.frame.width, 44, file: file, line: line)
             XCTAssertGreaterThanOrEqual(button.frame.height, 44, file: file, line: line)
         }
-        XCTAssertEqual(app.buttons["nowplaying.stop"].frame.midX, app.frame.midX, accuracy: 2, file: file, line: line)
-        XCTAssertTrue(app.buttons["nowplaying.sleepTimer"].isHittable, file: file, line: line)
-        XCTAssertTrue(app.buttons["nowplaying.retry"].isHittable, file: file, line: line)
-        XCTAssertTrue(app.buttons["nowplaying.close"].isHittable, file: file, line: line)
+        XCTAssertEqual(player.buttons["nowplaying.stop"].frame.midX, app.frame.midX, accuracy: 2, file: file, line: line)
+        XCTAssertTrue(player.buttons["nowplaying.sleepTimer"].isHittable, file: file, line: line)
+        XCTAssertTrue(player.buttons["nowplaying.retry"].isHittable, file: file, line: line)
+        XCTAssertTrue(player.buttons["nowplaying.close"].isHittable, file: file, line: line)
     }
 
     func testLoginFlowShowsFormAndAuthorizesMockCredentials() throws {
@@ -262,36 +270,41 @@ final class IPTVRadioUITests: XCTestCase {
 
         let miniPlayer = app.buttons["miniplayer.open"].firstMatch
         miniPlayer.tap()
-        XCTAssertTrue(app.buttons["nowplaying.close"].waitForExistence(timeout: 8))
-        XCTAssertTrue(app.descendants(matching: .any)
-            .matching(identifier: "nowplaying.vinyl").firstMatch.waitForExistence(timeout: 8))
-        XCTAssertTrue(app.buttons["nowplaying.stop"].exists)
-        XCTAssertTrue(app.buttons["nowplaying.sleepTimer"].exists)
+        let player = nowPlayingScreen(app)
+        XCTAssertTrue(player.buttons["nowplaying.close"].waitForExistence(timeout: 8))
+        let records = player.descendants(matching: .any).matching(identifier: "nowplaying.vinyl")
+        XCTAssertTrue(records.firstMatch.waitForExistence(timeout: 8))
+        XCTAssertEqual(records.count, 1, "The full-player record must be unambiguous within its screen")
+        XCTAssertTrue(player.buttons["nowplaying.stop"].exists)
+        XCTAssertTrue(player.buttons["nowplaying.sleepTimer"].exists)
         assertBottomPlayerControls(app)
-        let vinyl = app.descendants(matching: .any).matching(identifier: "nowplaying.vinyl").firstMatch
-        let status = app.descendants(matching: .any).matching(identifier: "nowplaying.status").firstMatch
+        let vinyl = records.firstMatch
+        let status = player.descendants(matching: .any).matching(identifier: "nowplaying.status").firstMatch
         XCTAssertTrue(status.waitForExistence(timeout: 8))
         XCTAssertEqual(vinyl.frame.midX, app.frame.midX, accuracy: 2)
         XCTAssertEqual(vinyl.frame.width, vinyl.frame.height, accuracy: 1)
-        let stageMidY = (app.buttons["nowplaying.close"].frame.maxY + status.frame.minY) / 2
+        let stageMidY = (player.buttons["nowplaying.close"].frame.maxY + status.frame.minY) / 2
         XCTAssertEqual(vinyl.frame.midY, stageMidY, accuracy: 3,
                        "Center the record in the free space between the header and track details")
         capture(app, name: "Workspace — Now Playing with preserved vinyl")
 
-        app.buttons["nowplaying.close"].tap()
+        player.buttons["nowplaying.close"].tap()
+        XCTAssertTrue(player.waitForNonExistence(timeout: 8), "Close must dismiss the presented player")
         XCTAssertTrue(app.buttons["miniplayer.open"].waitForExistence(timeout: 8),
                       "Closing the restyled player must retain playback and the vinyl mini player")
         app.buttons["miniplayer.open"].firstMatch.tap()
-        XCTAssertTrue(app.buttons["nowplaying.close"].waitForExistence(timeout: 8))
+        let reopenedPlayer = nowPlayingScreen(app)
+        XCTAssertTrue(reopenedPlayer.buttons["nowplaying.close"].waitForExistence(timeout: 8))
 
         // Switching stations repeatedly works without leaving the player.
-        app.buttons["nowplaying.next"].tap()
-        XCTAssertTrue(app.buttons["nowplaying.stop"].waitForExistence(timeout: 8))
+        reopenedPlayer.buttons["nowplaying.next"].tap()
+        XCTAssertTrue(reopenedPlayer.buttons["nowplaying.stop"].waitForExistence(timeout: 8))
 
         // Swipe the sheet down; playback continues in the mini player.
         let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.10))
         let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.85))
         from.press(forDuration: 0.1, thenDragTo: to)
+        XCTAssertTrue(reopenedPlayer.waitForNonExistence(timeout: 8), "Swipe must dismiss the presented player")
         XCTAssertTrue(app.buttons["miniplayer.open"].waitForExistence(timeout: 8))
 
         // Explicit Stop clears the mini player entirely so the full UI (and
@@ -308,22 +321,24 @@ final class IPTVRadioUITests: XCTestCase {
         let mini = app.buttons["miniplayer.open"].firstMatch
         XCTAssertTrue(mini.waitForExistence(timeout: 8))
         mini.tap()
-        XCTAssertTrue(app.buttons["nowplaying.close"].waitForExistence(timeout: 8))
+        let player = nowPlayingScreen(app)
+        XCTAssertTrue(player.buttons["nowplaying.close"].waitForExistence(timeout: 8))
         XCUIDevice.shared.orientation = .landscapeLeft
         let rotated = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             app.frame.width > app.frame.height
         }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [rotated], timeout: 8), .completed)
         assertBottomPlayerControls(app)
-        let scroller = app.scrollViews["nowplaying.detailsScroll"]
+        let scroller = player.scrollViews["nowplaying.detailsScroll"]
         XCTAssertTrue(scroller.waitForExistence(timeout: 8), "Short layouts must allow the record and details to scroll")
-        let card = app.descendants(matching: .any).matching(identifier: "nowplaying.controls").firstMatch
+        let card = player.descendants(matching: .any).matching(identifier: "nowplaying.controls").firstMatch
         let before = card.frame
         scroller.swipeUp()
         XCTAssertEqual(card.frame.minY, before.minY, accuracy: 2, "Scrolling details must not move transport controls")
         assertBottomPlayerControls(app)
         capture(app, name: "Bottom controls — compact-height player")
-        app.buttons["nowplaying.close"].tap()
+        player.buttons["nowplaying.close"].tap()
+        XCTAssertTrue(player.waitForNonExistence(timeout: 8), "Close must dismiss the compact player")
         XCTAssertTrue(mini.waitForExistence(timeout: 8), "Closing still retains playback")
     }
 

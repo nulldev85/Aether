@@ -173,6 +173,18 @@ class RadioDesignTests(unittest.TestCase):
             self.assertRegex(player, rf"static let {name}: CGFloat = {value}\b")
         self.assertNotIn(".ignoresSafeArea", body.split(".safeAreaInset", 1)[1].split(".foregroundStyle", 1)[0])
 
+    def test_full_player_geometry_checks_scope_the_record_to_the_presented_screen(self):
+        player = source("IPTVRadio/Features/NowPlaying/NowPlayingView.swift")
+        self.assertIn('.accessibilityElement(children: .contain)\n        .accessibilityLabel("Now playing")\n        .accessibilityIdentifier("nowplaying.screen")', player)
+        ui = source("IPTVRadioUITests/IPTVRadioUITests.swift")
+        self.assertIn('let records = player.descendants(matching: .any).matching(identifier: "nowplaying.vinyl")', ui)
+        self.assertIn('XCTAssertEqual(records.count, 1,', ui)
+        self.assertIn('XCTAssertEqual(screens.count, 1,', ui)
+        self.assertIn('XCTAssertEqual(vinyl.frame.midX, app.frame.midX, accuracy: 2)', ui)
+        self.assertIn('XCTAssertEqual(vinyl.frame.midY, stageMidY, accuracy: 3,', ui)
+        self.assertNotIn('app.descendants(matching: .any).matching(identifier: "nowplaying.vinyl")', ui)
+        self.assertIn('if (testRun?.totalFailureCount ?? 0) > 0', ui)
+
     def test_icon_geometry_is_preserved_and_colors_match_graphite(self):
         icon_source = source("scripts/generate-aether-icon.py")
         # Frozen from the original merged drawing at f403d74, not the failed
