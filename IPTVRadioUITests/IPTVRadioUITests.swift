@@ -46,6 +46,38 @@ final class IPTVRadioUITests: XCTestCase {
         link.tap()
     }
 
+    private func settingSwitch(_ identifier: String, in app: XCUIApplication,
+                               file: StaticString = #filePath, line: UInt = #line) -> XCUIElement {
+        // Resolve one native switch, rather than an Any/firstMatch wrapper
+        // retained across a NavigationStack pop and push.
+        let control = app.switches.matching(identifier: identifier).element
+        XCTAssertTrue(control.waitForExistence(timeout: 8), file: file, line: line)
+        XCTAssertTrue(control.isHittable, file: file, line: line)
+        return control
+    }
+
+    private func settingValue(_ identifier: String, in app: XCUIApplication,
+                              file: StaticString = #filePath, line: UInt = #line) throws -> String {
+        let control = settingSwitch(identifier, in: app, file: file, line: line)
+        let value = try XCTUnwrap(control.value as? String,
+                                 "Read the native switch value", file: file, line: line)
+        XCTAssertTrue(value == "0" || value == "1", "Unexpected switch value: \(value)", file: file, line: line)
+        return value
+    }
+
+    private func toggleSetting(_ identifier: String, to expected: String, in app: XCUIApplication,
+                               file: StaticString = #filePath, line: UInt = #line) throws {
+        let control = settingSwitch(identifier, in: app, file: file, line: line)
+        XCTAssertNotEqual(try settingValue(identifier, in: app, file: file, line: line), expected,
+                          "The test must exercise an actual state change", file: file, line: line)
+        control.tap()
+        // tap() waits for the native event and app idleness. These bindings
+        // change synchronously: read a fresh native query immediately, without
+        // a timer-based predicate competing with slow accessibility snapshots.
+        XCTAssertEqual(try settingValue(identifier, in: app, file: file, line: line), expected,
+                       "The completed tap must update the real setting", file: file, line: line)
+    }
+
     private func nowPlayingScreen(_ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) -> XCUIElement {
         let screens = app.descendants(matching: .any).matching(identifier: "nowplaying.screen")
         XCTAssertTrue(screens.firstMatch.waitForExistence(timeout: 8), file: file, line: line)
@@ -347,14 +379,9 @@ final class IPTVRadioUITests: XCTestCase {
         app.buttons["Settings"].tap()
         openSettingsCategory("app", in: app)
 
-        let liquidGlassSwitch = app.descendants(matching: .any)
-            .matching(identifier: "settings.liquidGlass")
-            .firstMatch
-        XCTAssertTrue(liquidGlassSwitch.waitForExistence(timeout: 8))
-        let original = try XCTUnwrap(liquidGlassSwitch.value as? String)
-        liquidGlassSwitch.tap()
-        let changed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value != %@", original), object: liquidGlassSwitch)
-        XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 3), .completed)
+        let original = try settingValue("settings.liquidGlass", in: app)
+        let updated = original == "1" ? "0" : "1"
+        try toggleSetting("settings.liquidGlass", to: updated, in: app)
 
         let flatFavorites = app.buttons["tab.favorites"]
         if !flatFavorites.waitForExistence(timeout: 8) {
@@ -365,12 +392,17 @@ final class IPTVRadioUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["page.title.Favorites"].waitForExistence(timeout: 8))
         app.buttons["tab.settings"].tap()
         openSettingsCategory("app", in: app)
-        liquidGlassSwitch.tap()
-        let restored = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", original), object: liquidGlassSwitch)
-        XCTAssertEqual(XCTWaiter.wait(for: [restored], timeout: 3), .completed)
+        XCTAssertEqual(try settingValue("settings.liquidGlass", in: app), updated,
+                       "The navigation preference must survive leaving its Settings page")
+        try toggleSetting("settings.liquidGlass", to: original, in: app)
 
-        XCTAssertTrue(app.buttons["SXM"].waitForExistence(timeout: 8))
-        XCTAssertTrue(app.buttons["miniplayer.open"].exists)
+        app.buttons["SXM"].tap()
+        XCTAssertTrue(app.buttons["station.row.SiriusXM Hits 1"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["miniplayer.open"].isHittable)
+        app.buttons["tab.settings"].tap()
+        openSettingsCategory("app", in: app)
+        XCTAssertEqual(try settingValue("settings.liquidGlass", in: app), original,
+                       "The restored preference must also survive returning to Settings")
     }
 
     func testSettingsCategoriesExposeExistingControls() throws {
@@ -390,23 +422,17 @@ final class IPTVRadioUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)
             .matching(identifier: "settings.cellularBuffer").firstMatch.waitForExistence(timeout: 8))
         capture(app, name: "Rounded type — Settings Playback")
-        let cellular = app.switches["settings.cellular"]
-        XCTAssertTrue(cellular.exists, "The styled wrapper must still expose a native switch")
-        let original = try XCTUnwrap(cellular.value as? String)
-        cellular.tap()
-        let changed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value != %@", original), object: cellular)
-        XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 3), .completed)
-        let updated = try XCTUnwrap(cellular.value as? String)
+        let original = try settingValue("settings.cellular", in: app)
+        let updated = original == "1" ? "0" : "1"
+        try toggleSetting("settings.cellular", to: updated, in: app)
         openSettingsCategory("app", in: app)
         XCTAssertTrue(app.descendants(matching: .any)
             .matching(identifier: "settings.liquidGlass").firstMatch.waitForExistence(timeout: 8))
         capture(app, name: "Rounded type — Settings App")
         openSettingsCategory("playback", in: app)
-        XCTAssertTrue(cellular.waitForExistence(timeout: 8))
-        XCTAssertEqual(cellular.value as? String, updated, "The styled switch must keep its real Settings binding")
-        cellular.tap()
-        let restored = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", original), object: cellular)
-        XCTAssertEqual(XCTWaiter.wait(for: [restored], timeout: 3), .completed)
+        XCTAssertEqual(try settingValue("settings.cellular", in: app), updated,
+                       "The styled switch must keep its real Settings binding")
+        try toggleSetting("settings.cellular", to: original, in: app)
     }
 
     func testWorkspaceHeaderAndBottomPlaybackShelfStayIndependentlyReachable() throws {

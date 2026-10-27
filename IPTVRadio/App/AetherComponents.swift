@@ -83,8 +83,10 @@ struct AetherBarButtonStyle: ButtonStyle {
     var prominent = false
     func makeBody(configuration: Configuration) -> some View {
         configuration.label.font(.radio(15, .semibold))
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
             .foregroundStyle(prominent ? AetherTheme.onAccent : AetherTheme.primaryText)
-            .padding(.horizontal, 14).frame(minHeight: 36)
+            .padding(.horizontal, 14).frame(minHeight: 44)
             .contentShape(Rectangle())
             .opacity(configuration.isPressed ? 0.75 : 1)
     }

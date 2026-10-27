@@ -7,3 +7,4 @@
 - A cleaner full player with left-aligned song details and unboxed controls, keeping the centered spinning vinyl.
 - Dim charcoal surfaces and gray controls throughout, with the same rounded typeface.
 - Improved VoiceOver navigation for player controls and station filters.
+- Toolbar buttons keep their labels on one line, including Cancel when adding a station.

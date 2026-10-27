@@ -1,4 +1,4 @@
-# Aether workspace overhaul — 1.2.0 (6)
+# Aether workspace overhaul — 1.2.0 (7)
 
 Active design specification. The user asked for a completely different look
 and feel, minimal, sleek, professional and dim. The previous Graphite layout
@@ -134,3 +134,43 @@ font, geometry, playback, icon, palette, dependencies and CI gates are unchanged
 Build-6 local validation: 21 design/preservation tests and seven package tests
 passed. Both credential scripts, official actionlint and diff checks passed.
 No Apple SDK is installed locally; the replacement SDK/UI run remains pending.
+
+## Build 7: native Settings assertions and toolbar labels
+
+The user reported run 40601935393 at 79c16f4 failed. Its completed jobs and
+simulator job 122531953612 log were inspected once. Compilation and all 307
+unit tests passed. Fourteen of 15 UI tests passed, including the full player:
+record centering, Close, reopening, Next, swipe dismissal and Stop, plus the
+compact scroll/control regression. The sole failure was the three-second
+predicate waiting for the navigation preference to return to `0`. The failing
+hierarchy shows both the labeled switch and its native child already at `0`.
+The unit/UI step took 16m22s. Device packaging was skipped.
+
+Downloaded the existing test-results artifact 12780550613 and confirmed its
+source SHA. The result summary confirms 321 passes, one failure and no skips.
+Reviewed all 16 saved screenshots as well as both Settings tests and the
+production binding/header code. There is no asynchronous preference write:
+the native toggle updates a published binding and UserDefaults synchronously.
+The exact reason XCTest's timed predicate missed the state is not proven;
+the logs show multi-second accessibility reads during its three-second budget.
+
+Both Settings scenarios now resolve an unambiguous native Switch, require it
+to be hittable, verify the exact binary value, perform one real tap, and read
+the exact new value from a fresh native query after that action completes.
+There is no timer predicate or retained Any/firstMatch element across page
+navigation. These are stricter checks than accepting any changed value. The
+navigation preference must retain both its changed and restored values across
+leaving/returning, and SXM plus the playback shelf must remain usable. Cellular
+retains its existing navigation/persistence and restore assertions. All 15 UI
+scenarios remain; no production setting, engine or CI gate was changed.
+
+Screenshot review also exposed a real visible defect: Cancel in the station
+editor wrapped into a narrow two-line label. Toolbar label sizing now reserves
+the full single-line text width and a 44-point minimum height. The same shared
+style also covers Save and the sleep timer's Done. The font and dim palette are
+unchanged. Native verification of the revised label remains pending CI.
+
+All 21 local design/preservation checks, seven package checks, both original
+credential scripts, workflow lint and diff checks passed before dispatch. No
+Apple SDK is installed locally, so do not claim a successful SDK/UI/IPA build
+until the user reports the replacement result. Do not poll or watch its run.
