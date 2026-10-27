@@ -5,9 +5,10 @@ struct RadioPageHeading: View {
     let subtitle: String
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.radio(.title2, .heavy))
+            Text(title).font(.radio(.title, .heavy))
                 .foregroundStyle(AetherTheme.primaryText)
                 .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("page.title.\(title)")
             if !subtitle.isEmpty {
                 Text(subtitle).font(.radio(.subheadline))
                     .foregroundStyle(AetherTheme.secondaryText)
@@ -15,7 +16,7 @@ struct RadioPageHeading: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 12).padding(.bottom, 16)
+        .padding(.top, 24).padding(.bottom, 24)
     }
 }
 
@@ -72,7 +73,8 @@ struct AetherButtonStyle: ButtonStyle {
             .foregroundStyle(configuration.role == .destructive ? AetherTheme.destructive : (prominent ? AetherTheme.onAccent : AetherTheme.primaryText))
             .padding(.horizontal, 20).padding(.vertical, 12)
             .frame(minHeight: 48)
-            .background(prominent ? AetherTheme.selected : AetherTheme.surface, in: RoundedRectangle(cornerRadius: AetherTheme.compactRadius))
+            .background(prominent ? AetherTheme.selected : Color.clear, in: RoundedRectangle(cornerRadius: 4))
+            .overlay(alignment: .bottom) { if !prominent { AetherTheme.divider.frame(height: 0.5) } }
             .opacity(configuration.isPressed ? 0.75 : 1)
     }
 }
@@ -83,7 +85,7 @@ struct AetherBarButtonStyle: ButtonStyle {
         configuration.label.font(.radio(15, .semibold))
             .foregroundStyle(prominent ? AetherTheme.onAccent : AetherTheme.primaryText)
             .padding(.horizontal, 14).frame(minHeight: 36)
-            .background(prominent ? AetherTheme.selected : AetherTheme.surface, in: RoundedRectangle(cornerRadius: 10))
+            .contentShape(Rectangle())
             .opacity(configuration.isPressed ? 0.75 : 1)
     }
 }
@@ -154,16 +156,15 @@ struct AetherFormSection<Content: View>: View {
         Section { content } header: {
             Text(title).font(.radio(.footnote, .semibold))
         }
-        .listRowBackground(AetherTheme.surface)
+        .listRowBackground(Color.clear)
     }
 }
 
 extension View {
     func radioField() -> some View {
         textFieldStyle(.plain).font(.radio(.body))
-            .padding(.horizontal, 14).padding(.vertical, 13)
-            .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: AetherTheme.compactRadius, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: AetherTheme.compactRadius).strokeBorder(AetherTheme.divider, lineWidth: 1))
+            .padding(.vertical, 16)
+            .overlay(alignment: .bottom) { AetherTheme.divider.frame(height: 0.5) }
     }
 
     func radioSettingsList() -> some View {

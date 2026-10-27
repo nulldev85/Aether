@@ -11,11 +11,11 @@ struct SearchView: View {
                 AetherTheme.background.ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    RadioPageHeading(title: "Search", subtitle: "Search stations, genres and shows.")
-                        .padding(.horizontal, 20)
+                    RadioPageHeading(title: "Find a station", subtitle: "Search your stations and provider.")
+                        .padding(.horizontal, 24)
                     searchField
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 12)
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 24)
 
                     Group {
                         if library.state == .loaded || !manualStations.entries.isEmpty {
@@ -32,6 +32,7 @@ struct SearchView: View {
             .navigationTitle("Search")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar(.hidden, for: .navigationBar)
         }
         .background(AetherTheme.background.ignoresSafeArea())
     }
@@ -61,10 +62,8 @@ struct SearchView: View {
             }
         }
         .font(.radio(.body))
-        .padding(.horizontal, 16)
         .frame(minHeight: 54)
-        .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(AetherTheme.divider, lineWidth: 1))
+        .overlay(alignment: .bottom) { AetherTheme.primaryText.opacity(0.5).frame(height: 1) }
     }
 
     @ViewBuilder
@@ -74,23 +73,25 @@ struct SearchView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
                     AetherSectionLabel(title: "Browse by genre")
-                    ForEach(["Rock", "Jazz", "News", "Country", "Talk"], id: \.self) { term in
-                        Button {
-                            library.searchQuery = term
-                        } label: {
-                            HStack {
-                                Text(term).font(.radio(.body, .medium))
-                                Spacer()
-                                Image(systemName: "chevron.right").font(.radio(14, .medium))
-                                    .foregroundStyle(AetherTheme.accent)
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 20)], spacing: 0) {
+                        ForEach(["Rock", "Jazz", "News", "Country", "Talk"], id: \.self) { term in
+                            Button {
+                                library.searchQuery = term
+                            } label: {
+                                HStack {
+                                    Text(term).font(.radio(.body, .medium))
+                                    Spacer()
+                                    Image(systemName: "arrow.up.right").font(.radio(14, .medium))
+                                        .foregroundStyle(AetherTheme.mutedIcon)
+                                }
+                                .foregroundStyle(AetherTheme.primaryText)
+                                .frame(minHeight: 64)
+                                .overlay(alignment: .bottom) { AetherTheme.divider.frame(height: 0.5) }
+                                .contentShape(Rectangle())
                             }
-                            .foregroundStyle(AetherTheme.primaryText)
-                            .frame(minHeight: 48)
-                            .overlay(alignment: .bottom) { AetherTheme.divider.frame(height: 0.5) }
-                            .contentShape(Rectangle())
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("search.suggestion.\(term.lowercased())")
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("search.suggestion.\(term.lowercased())")
                     }
                     Text("Search your provider's stations and the stations you've saved. Enter at least two characters.")
                         .font(.radio(.footnote)).foregroundStyle(AetherTheme.secondaryText)

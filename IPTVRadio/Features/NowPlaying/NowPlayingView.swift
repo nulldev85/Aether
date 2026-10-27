@@ -88,7 +88,7 @@ struct NowPlayingView: View {
         .padding(.horizontal, 18)
         .padding(.vertical, NowPlayingLayout.controlVerticalPadding)
         .frame(maxWidth: 440)
-        .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(alignment: .top) { AetherTheme.divider.frame(height: 0.5) }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("nowplaying.controls")
     }
@@ -98,9 +98,10 @@ struct NowPlayingView: View {
             Text("Now Playing").font(.radio(17, .heavy))
             Spacer()
             Button { dismiss() } label: {
-                Image(systemName: "chevron.down").frame(width: 16, height: 20)
+                Image(systemName: "chevron.down").font(.radio(18, .medium))
+                    .frame(width: 44, height: 44).contentShape(Rectangle())
             }
-            .buttonStyle(AetherBarButtonStyle())
+            .buttonStyle(.plain)
             .accessibilityLabel("Close now playing")
             .accessibilityIdentifier("nowplaying.close")
         }
@@ -109,7 +110,7 @@ struct NowPlayingView: View {
     }
 
     private func trackDetails(for station: RadioStation) -> some View {
-        VStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Text(status).font(.radio(11, .medium))
             }
@@ -140,8 +141,8 @@ struct NowPlayingView: View {
                 }
             }
         }
-        .multilineTextAlignment(.center)
-        .frame(maxWidth: 440)
+        .multilineTextAlignment(.leading)
+        .frame(maxWidth: 440, alignment: .leading)
     }
 
     private var status: String {
@@ -159,6 +160,7 @@ struct NowPlayingView: View {
             Button { playback.previousStation() } label: {
                 Image(systemName: "backward.end.fill").font(.radio(22, .semibold))
                     .frame(width: NowPlayingLayout.skipButtonSize, height: NowPlayingLayout.skipButtonSize)
+                    .contentShape(Rectangle())
             }
             .accessibilityLabel("Previous station")
             .accessibilityIdentifier("nowplaying.previous")
@@ -174,7 +176,8 @@ struct NowPlayingView: View {
                 Image(systemName: mainButtonIcon).font(.radio(28, .semibold))
                     .frame(width: NowPlayingLayout.transportButtonSize, height: NowPlayingLayout.transportButtonSize)
                     .foregroundStyle(AetherTheme.onAccent)
-                    .background(AetherTheme.selected, in: Circle())
+                    .background(AetherTheme.selected, in: RoundedRectangle(cornerRadius: 4))
+                    .contentShape(Rectangle())
             }
             .accessibilityLabel(mainButtonLabel)
             .accessibilityIdentifier(mainButtonIsStop ? "nowplaying.stop" : "nowplaying.toggle")
@@ -182,6 +185,7 @@ struct NowPlayingView: View {
             Button { playback.nextStation() } label: {
                 Image(systemName: "forward.end.fill").font(.radio(22, .semibold))
                     .frame(width: NowPlayingLayout.skipButtonSize, height: NowPlayingLayout.skipButtonSize)
+                    .contentShape(Rectangle())
             }
             .accessibilityLabel("Next station")
             .accessibilityIdentifier("nowplaying.next")
@@ -202,6 +206,7 @@ struct NowPlayingView: View {
             Button { playback.retry() } label: {
                 Image(systemName: "arrow.clockwise").font(.radio(19, .semibold))
                     .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
             .accessibilityLabel("Retry connection")
             .accessibilityIdentifier("nowplaying.retry")
@@ -260,6 +265,7 @@ struct SleepTimerButton: View {
         } label: {
             Image(systemName: playback.sleepTimerDeadline == nil ? "moon.zzz" : "moon.zzz.fill")
                 .font(.radio(.title3))
+                .frame(width: 44, height: 44).contentShape(Rectangle())
         }
         .accessibilityLabel("Sleep timer")
         .accessibilityIdentifier("nowplaying.sleepTimer")

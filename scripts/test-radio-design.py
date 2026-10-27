@@ -43,7 +43,7 @@ class RadioDesignTests(unittest.TestCase):
         for name, color in REFERENCE["palette"].items():
             with self.subTest(color=name):
                 self.assertRegex(self.theme, rf"static let {name} = (?:Color\(uiColor: )?rgb\(0x{color}\)")
-        for name in ("panelRadius", "compactRadius", "panelInset", "panelGap", "sideMargin", "padding", "itemHeight"):
+        for name in ("panelRadius", "compactRadius", "panelInset", "panelGap", "sideMargin", "utilityTarget", "minimumTarget"):
             self.assertRegex(self.theme, rf"static let {name}: CGFloat = {REFERENCE[name]}\b")
 
     def test_entire_app_uses_one_dark_rounded_theme(self):
@@ -68,17 +68,14 @@ class RadioDesignTests(unittest.TestCase):
 
     def test_station_logos_have_no_app_added_tiles(self):
         rows = source("IPTVRadio/Features/Components/StationRow.swift")
-        # Check the modifiers on the logo, not the enclosing station card.
-        logo = rows.split("StationArtwork(logoURL: displayedStation.logoURL", 1)[1]
-        logo = logo.split("VStack(alignment:", 1)[0]
-        self.assertIn(".frame(width: 64, height: 64)", logo)
-        self.assertNotIn(".background(", logo)
-        self.assertNotIn(".overlay(", logo)
+        for logo in rows.split("StationArtwork(logoURL: displayedStation.logoURL")[1:]:
+            modifiers = logo.split("stationText", 1)[0]
+            self.assertNotIn(".background(", modifiers)
+            self.assertNotIn(".overlay(", modifiers)
         artwork = rows.split("struct StationArtwork: View", 1)[1].split("struct PlaybackArtwork:", 1)[0]
         self.assertNotIn(".background(", artwork)
         self.assertNotIn(".fill(", artwork)
         self.assertIn(".aspectRatio(contentMode: .fit)", artwork)
-        # Keep existing provider-background removal and image caching intact.
         self.assertIn("return LogoBackgroundKeyer.keyed(image)", rows)
         dial = source("IPTVRadio/Features/Radio/AetherDialView.swift")
         logo = dial.split("StationArtwork(logoURL: station.logoURL", 1)[1].split("VStack(alignment:", 1)[0]
@@ -134,7 +131,7 @@ class RadioDesignTests(unittest.TestCase):
         self.assertNotIn("AetherTuningRule", components)
         self.assertNotIn("eyebrow", components)
         self.assertNotIn(".tracking(", components)
-        self.assertIn("prominent ? AetherTheme.selected : AetherTheme.surface", components)
+        self.assertIn("prominent ? AetherTheme.selected : Color.clear", components)
         for path in (ROOT / "IPTVRadio/Features").rglob("*.swift"):
             text = path.read_text(encoding="utf-8")
             self.assertNotIn("AetherTuningRule", text)
@@ -200,17 +197,45 @@ class RadioDesignTests(unittest.TestCase):
                 self.assertIn(before, original)
                 self.assertNotEqual(icon_geometry_digest(original.replace(before, after, 1)), expected)
 
-    def test_minimal_navigation_has_one_clearance_owner(self):
+    def test_workspace_navigation_and_player_have_separate_layout_owners(self):
         navigation = source("IPTVRadio/Features/Root/MainTabView.swift")
-        self.assertIn("AetherNavigationLayout.reservedHeight(", navigation)
-        self.assertIn('accessibilityIdentifier("aether.navigation.custom")', navigation)
-        self.assertIn("AetherTabBar(selection:", navigation)
-        self.assertIn("RoundedRectangle(cornerRadius: 12)", navigation)
-        self.assertNotIn("in: Capsule()", navigation)
-        self.assertIn(".tint(AetherTheme.accent)", navigation)
+        self.assertEqual(navigation.count("TabView(selection:"), 1)
+        self.assertIn('accessibilityIdentifier("aether.navigation.header")', navigation)
+        self.assertIn("workspaceHeader\n            TabView", navigation)
+        self.assertEqual(navigation.count(".safeAreaInset(edge: .bottom, spacing: 0)"), 1)
+        self.assertIn("MiniPlayerView(onOpen:", navigation)
+        for old in ("AetherTabBar", "reservedHeight(", "GeometryReader", "nativeNavigation"):
+            self.assertNotIn(old, navigation)
+        self.assertNotIn(".overlay(alignment: .bottom)", navigation.split("private var workspaceHeader:", 1)[0])
         self.assertIn("settings.liquidGlassEnabled", navigation)
-        self.assertNotIn("flatControlsClearance", source("IPTVRadio/Features/Settings/SettingsView.swift"))
-        self.assertNotIn(".frame(height: 61 +", source("IPTVRadio/Features/Favorites/FavoritesTabView.swift"))
+        mini = source("IPTVRadio/Features/NowPlaying/MiniPlayerView.swift")
+        self.assertIn('accessibilityIdentifier("aether.playback.shelf")', mini)
+        self.assertNotIn("RoundedRectangle(", mini)
+        self.assertNotIn(".padding(.horizontal, AetherTheme.margin)", mini)
+
+    def test_presets_settings_pages_and_unboxed_controls_replace_the_old_structure(self):
+        for path in ("Radio/ManualRadioView.swift", "Favorites/FavoritesTabView.swift"):
+            text = source("IPTVRadio/Features/" + path)
+            self.assertIn("LazyVGrid(", text)
+            self.assertIn("preset: true", text)
+            self.assertIn("typeSize.isAccessibilitySize ? 1 : 2", text)
+        settings = source("IPTVRadio/Features/Settings/SettingsView.swift")
+        self.assertIn("categoryPage(category)", settings)
+        self.assertNotIn("categoryBar", settings)
+        self.assertNotIn("selectedCategory", settings)
+        self.assertNotIn(".background(AetherTheme.surface, in:", settings)
+        player = source("IPTVRadio/Features/NowPlaying/NowPlayingView.swift")
+        controls = player.split("private var controlCard:", 1)[1].split("private var header:", 1)[0]
+        self.assertNotIn(".background(", controls)
+        self.assertIn(".multilineTextAlignment(.leading)", player)
+        # Controls keep minimum-sized interactive label rectangles, not just
+        # a small glyph inside a frame invisible to hit testing/accessibility.
+        self.assertEqual(player.count(".frame(width: NowPlayingLayout.skipButtonSize, height: NowPlayingLayout.skipButtonSize)\n                    .contentShape(Rectangle())"), 2)
+        self.assertIn(".frame(width: 44, height: 44).contentShape(Rectangle())", player)
+        rows = source("IPTVRadio/Features/Components/StationRow.swift")
+        self.assertIn("private var favoriteButton:", rows)
+        play_label = rows.split("Button(action: play)", 1)[1].split('.buttonStyle(.plain)', 1)[0]
+        self.assertNotIn("Button {", play_label)
 
     def test_system_accent_asset_matches_the_shared_gray(self):
         asset = json.loads(source("IPTVRadio/Assets.xcassets/AccentColor.colorset/Contents.json"))
@@ -222,7 +247,7 @@ class RadioDesignTests(unittest.TestCase):
 
     def test_every_destination_has_the_new_identity_without_dropping_features(self):
         components = source("IPTVRadio/App/AetherComponents.swift")
-        self.assertIn(".font(.radio(.title2, .heavy))", components)
+        self.assertIn(".font(.radio(.title, .heavy))", components)
         settings = source("IPTVRadio/Features/Settings/SettingsView.swift")
         self.assertIn('value: "Dark"', settings)
         self.assertNotIn('value: "Lineup"', settings)
@@ -233,7 +258,8 @@ class RadioDesignTests(unittest.TestCase):
         self.assertIn("library.searchResults()", search)
         self.assertIn(".searchQuery = \"\"", search)
         manual = source("IPTVRadio/Features/Radio/ManualRadioView.swift")
-        self.assertIn("ScrollView {\n            emptyStationContent", manual)
+        self.assertIn("ScrollView {", manual)
+        self.assertIn("emptyStationContent", manual)
         for path in ("Auth/LoginView.swift", "Radio/ManualRadioView.swift", "Radio/RadioHomeView.swift",
                      "Favorites/FavoritesTabView.swift", "Search/SearchView.swift", "Radio/AetherDialView.swift"):
             self.assertIn("RadioPageHeading(", source("IPTVRadio/Features/" + path))

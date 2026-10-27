@@ -27,21 +27,12 @@ final class AetherStyleTests: XCTestCase {
         }
     }
 
-    func testNavigationClearanceIncludesBothCapsulesWithoutDoubleCountingSafeArea() {
-        for bottom in [CGFloat(0), 21, 34] {
-            for playerHeight in [CGFloat(68), 110] {
-                let gap: CGFloat = bottom > 0 ? 20 : 8
-                let withPlayer = AetherNavigationLayout.reservedHeight(hasPlayer: true, playerHeight: playerHeight, safeAreaBottom: bottom)
-                let withoutPlayer = AetherNavigationLayout.reservedHeight(hasPlayer: false, playerHeight: playerHeight, safeAreaBottom: bottom)
-                XCTAssertEqual(withPlayer + bottom, 62 + gap + playerHeight + 8)
-                XCTAssertEqual(withoutPlayer + bottom, 62 + gap)
-                XCTAssertEqual(withPlayer - withoutPlayer, playerHeight + 8)
-            }
-        }
-        XCTAssertEqual(AetherTheme.panelRadius, 12)
-        XCTAssertEqual(AetherTheme.compactRadius, 10)
-        XCTAssertEqual(AetherNavigationLayout.itemHeight, 54)
-        XCTAssertEqual(AetherNavigationLayout.padding, 4)
+    func testWorkspaceNavigationMetricsRetainUsableTouchTargets() {
+        XCTAssertEqual(AetherNavigationLayout.sideMargin, 24)
+        XCTAssertGreaterThanOrEqual(AetherNavigationLayout.utilityTarget, 44)
+        XCTAssertGreaterThanOrEqual(AetherNavigationLayout.minimumTarget, 44)
+        // Actual top/bottom separation and target frames are asserted in the
+        // UI suite. There is no floating-dock reservation arithmetic anymore.
     }
 
     func testNativeNavigationTypefaceMatchesLineupsRoundedSystemFace() throws {

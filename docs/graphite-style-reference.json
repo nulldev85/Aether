@@ -1,6 +1,7 @@
 {
   "name": "Graphite",
-  "base": "4cbe11c",
+  "base": "19949ab",
+  "layout": "workspace",
   "palette": {
     "uiCanvas": "101113",
     "uiNavigationSurface": "181A1D",
@@ -16,9 +17,9 @@
   "compactRadius": 10,
   "panelInset": 18,
   "panelGap": 24,
-  "sideMargin": 20,
-  "padding": 4,
-  "itemHeight": 54,
+  "sideMargin": 24,
+  "utilityTarget": 48,
+  "minimumTarget": 44,
   "font": "SF Pro Rounded",
   "appearance": "dark",
   "preservedFontDigest": "fad93369e123fe39c464583640873287cb035ceda68474e7a867a488697ceff4",

@@ -7,67 +7,46 @@ struct FavoritesTabView: View {
     @EnvironmentObject private var playback: PlaybackEngine
     @State private var isReordering = false
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
     var body: some View {
         NavigationStack {
-            Group {
-                if favorites.favorites.isEmpty {
-                    EmptyStateView(
-                        title: "No favorites yet",
-                        message: "Tap the star on any station to keep it here.",
-                        systemImage: "heart"
-                    )
-                } else {
-                    List {
-                        RadioPageHeading(title: "Favorites", subtitle: "Stations you've saved.")
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
-                        AetherSectionLabel(title: "Your rotation", detail: "\(favorites.favorites.count) saved")
-                            .listRowBackground(Color.clear).listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
-                        ForEach(favorites.favorites.enumerated().map { IndexedFavorite(index: $0.offset, entry: $0.element) }) { item in
-                            let entry = item.entry
-                            HStack(spacing: 4) {
-                                StationRow(station: entry.station)
-                                if isReordering {
-                                    ReorderButtons(
-                                        name: entry.station.name,
-                                        canMoveUp: item.index > 0,
-                                        canMoveDown: item.index < favorites.favorites.count - 1,
-                                        moveUp: { favorites.move(id: entry.id, by: -1) },
-                                        moveDown: { favorites.move(id: entry.id, by: 1) }
-                                    )
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack {
+                        RadioPageHeading(title: "Favorites", subtitle: "\(favorites.favorites.count) saved stations")
+                        if favorites.favorites.count > 1 || isReordering {
+                            Button { isReordering.toggle() } label: {
+                                Text(isReordering ? "Done" : "Arrange").font(.radio(.subheadline, .medium))
+                                    .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                            }
+                            .accessibilityIdentifier("favorites.reorder")
+                        }
+                    }
+                    if favorites.favorites.isEmpty {
+                        EmptyStateView(title: "No favorites yet", message: "Tap the star on any station to keep it here.", systemImage: "star")
+                    } else {
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 28),
+                                                 count: typeSize.isAccessibilitySize ? 1 : 2),
+                                  alignment: .leading, spacing: 28) {
+                            ForEach(favorites.favorites.enumerated().map { IndexedFavorite(index: $0.offset, entry: $0.element) }) { item in
+                                VStack(alignment: .leading, spacing: 8) {
+                                    StationRow(station: item.entry.station, preset: true, position: item.index + 1)
+                                    if isReordering {
+                                        ReorderButtons(name: item.entry.station.name,
+                                            canMoveUp: item.index > 0, canMoveDown: item.index < favorites.favorites.count - 1,
+                                            moveUp: { favorites.move(id: item.entry.id, by: -1) },
+                                            moveDown: { favorites.move(id: item.entry.id, by: 1) })
+                                    }
                                 }
                             }
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
                         }
                     }
-                    .listStyle(.plain)
-                    .scrollContentBackground(.hidden)
                 }
+                .padding(.horizontal, 24).padding(.bottom, 28)
             }
-            .navigationTitle("Favorites")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if favorites.favorites.count > 1 || isReordering {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            isReordering.toggle()
-                        } label: {
-                            if isReordering {
-                                Text("Done").font(.radio(.body, .semibold))
-                            } else {
-                                Image(systemName: "arrow.up.arrow.down")
-                                    .foregroundStyle(AetherTheme.mutedIcon)
-                            }
-                        }
-                        .accessibilityLabel(isReordering ? "Done reordering" : "Reorder favorites")
-                        .accessibilityIdentifier("favorites.reorder")
-                    }
-                }
-            }
-            .background(AetherTheme.background.ignoresSafeArea())
+            .toolbar(.hidden, for: .navigationBar)
+            .background(AetherTheme.canvas.ignoresSafeArea())
         }
     }
 }

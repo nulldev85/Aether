@@ -23,7 +23,7 @@ struct MiniPlayerView: View {
                                 artwork: playback.nowPlayingMetadata?.artworkImage ?? stationLogo,
                                 isSpinning: playback.state.isPlaying && scenePhase == .active && !reduceMotion
                             )
-                            .frame(width: 46, height: 46)
+                            .frame(width: 54, height: 54)
                             .clipShape(Circle())
                             .accessibilityHidden(true)
 
@@ -44,6 +44,7 @@ struct MiniPlayerView: View {
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("miniplayer.open")
                     .accessibilityLabel("Open now playing screen")
+                    .accessibilityValue("\(station.name), \(stateDescription)")
                     .accessibilityHint("Opens the full now playing controls")
 
                     if playback.state.isBusy {
@@ -59,7 +60,7 @@ struct MiniPlayerView: View {
                             .font(.radio(18, .bold))
                             .frame(width: 44, height: 44)
                             .foregroundStyle(AetherTheme.onAccent)
-                            .background(AetherTheme.selected, in: Circle())
+                            .contentShape(Rectangle())
                     }
                     .accessibilityLabel(toggleAccessibilityLabel)
                     .accessibilityIdentifier("miniplayer.toggle")
@@ -75,11 +76,12 @@ struct MiniPlayerView: View {
                     .accessibilityLabel("Stop")
                     .accessibilityIdentifier("miniplayer.stop")
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 11)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
                 .foregroundStyle(AetherTheme.primaryText)
-                .background(AetherTheme.raisedSurface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .padding(.horizontal, AetherTheme.margin)
+                .background(AetherTheme.canvas)
+                .overlay(alignment: .top) { AetherTheme.divider.frame(height: 0.5) }
+                .accessibilityIdentifier("aether.playback.shelf")
                 .task(id: station.id) {
                     stationLogo = nil
                     guard let url = station.logoURL else { return }

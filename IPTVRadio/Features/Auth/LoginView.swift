@@ -13,6 +13,8 @@ struct LoginView: View {
     @State private var playlistURL = ""
     @State private var isSigningIn = false
     @State private var errorMessage: String?
+    private enum Field: Hashable { case server, username, password, playlist }
+    @FocusState private var focusedField: Field?
 
     var body: some View {
         NavigationStack {
@@ -27,8 +29,10 @@ struct LoginView: View {
                                     .font(.radio(.subheadline, .semibold))
                                     .frame(maxWidth: .infinity, minHeight: 46)
                                     .foregroundStyle(mode == option ? AetherTheme.onAccent : AetherTheme.secondaryText)
-                                    .background(mode == option ? AetherTheme.selected : AetherTheme.surface,
-                                                in: RoundedRectangle(cornerRadius: 10))
+                                    .overlay(alignment: .bottom) {
+                                        (mode == option ? AetherTheme.primaryText : AetherTheme.divider).frame(height: mode == option ? 1 : 0.5)
+                                    }
+                                    .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                             .accessibilityAddTraits(mode == option ? [.isSelected] : [])
@@ -68,7 +72,8 @@ struct LoginView: View {
                 .frame(maxWidth: .infinity)
             }
             .background(AetherTheme.background.ignoresSafeArea())
-            .navigationTitle("Sign In")
+            .toolbar(.hidden, for: .navigationBar)
+            .scrollDismissesKeyboard(.interactively)
             .onAppear {
                 mode = environment.settings.authMode
             }
@@ -76,7 +81,11 @@ struct LoginView: View {
     }
 
     private var header: some View {
-        RadioPageHeading(title: "Sign In", subtitle: "Connect your radio provider.")
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Aether").font(.radio(34, .heavy))
+            RadioPageHeading(title: "Connect a provider", subtitle: "Your radio, in one place.")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 40)
     }
 
     private var xtreamForm: some View {
@@ -87,6 +96,9 @@ struct LoginView: View {
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
                 .radioField()
+                .focused($focusedField, equals: .server)
+                .submitLabel(.next)
+                .onSubmit { focusedField = .username }
                 .accessibilityIdentifier("login.server")
                 .accessibilityLabel(Text("Server or portal URL"))
             TextField("Username", text: $username)
@@ -94,12 +106,16 @@ struct LoginView: View {
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
                 .radioField()
+                .focused($focusedField, equals: .username)
+                .submitLabel(.next)
+                .onSubmit { focusedField = .password }
                 .accessibilityIdentifier("login.username")
             SecureField("Password", text: $password)
                 .textContentType(.password)
                 .submitLabel(.go)
                 .onSubmit(signIn)
                 .radioField()
+                .focused($focusedField, equals: .password)
                 .accessibilityIdentifier("login.password")
         }
     }
@@ -112,6 +128,7 @@ struct LoginView: View {
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
                 .radioField()
+                .focused($focusedField, equals: .playlist)
                 .accessibilityIdentifier("login.playlistURL")
             Text("The playlist is downloaded from your own provider. URLs containing embedded credentials are stored only in the Keychain and never logged.")
                 .font(.radio(.footnote))
@@ -146,10 +163,9 @@ struct LoginView: View {
                 .font(.radio(.caption2))
                 .foregroundStyle(AetherTheme.secondaryText)
         }
-        .padding(18)
+        .padding(.vertical, 20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AetherTheme.raisedSurface)
-        .clipShape(RoundedRectangle(cornerRadius: AetherTheme.panelRadius, style: .continuous))
+        .overlay(alignment: .top) { AetherTheme.divider.frame(height: 0.5) }
     }
 
     private func signIn() {

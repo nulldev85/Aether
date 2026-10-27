@@ -8,9 +8,15 @@ final class IPTVRadioUITests: XCTestCase {
     }
 
     private func launch(scenario: String, extraArguments: [String] = []) -> XCUIApplication {
+        XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication()
         app.launchArguments = ["-UITestMock", "-UITestScenario=\(scenario)"] + extraArguments
         app.launch()
+        let portrait = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            app.frame.height > app.frame.width
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [portrait], timeout: 8), .completed,
+                       "Every scenario must begin in portrait, including after the rotation regression")
         return app
     }
 
@@ -19,6 +25,17 @@ final class IPTVRadioUITests: XCTestCase {
         attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
+    }
+
+    private func openSettingsCategory(_ name: String, in app: XCUIApplication) {
+        let link = app.buttons["settings.category.\(name)"]
+        if !link.exists {
+            let back = app.navigationBars.buttons.element(boundBy: 0)
+            XCTAssertTrue(back.waitForExistence(timeout: 8))
+            back.tap()
+        }
+        XCTAssertTrue(link.waitForExistence(timeout: 8))
+        link.tap()
     }
 
     private func assertBottomPlayerControls(_ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
@@ -46,7 +63,7 @@ final class IPTVRadioUITests: XCTestCase {
 
         let serverField = app.textFields["login.server"]
         XCTAssertTrue(serverField.waitForExistence(timeout: 10))
-        capture(app, name: "Graphite — Sign in")
+        capture(app, name: "Workspace — Sign in")
 
         serverField.tap()
         serverField.typeText("https://demo.example.net:8080")
@@ -54,6 +71,7 @@ final class IPTVRadioUITests: XCTestCase {
         usernameField.tap()
         usernameField.typeText("uitest-user")
         let passwordField = app.secureTextFields["login.password"]
+        if !passwordField.isHittable { app.swipeUp() }
         passwordField.tap()
         passwordField.typeText("uitest-pass\n")
 
@@ -74,9 +92,9 @@ final class IPTVRadioUITests: XCTestCase {
 
         // SiriusXM keeps its own tab beside the listener's Radio stations.
         app.buttons["SXM"].tap()
-        XCTAssertTrue(app.staticTexts["SiriusXM Hits 1"].waitForExistence(timeout: 8))
-        XCTAssertTrue(app.staticTexts["SiriusXM Octane"].exists)
-        capture(app, name: "Shell — SiriusXM")
+        XCTAssertTrue(app.buttons["station.row.SiriusXM Hits 1"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["station.row.SiriusXM Octane"].exists)
+        capture(app, name: "Workspace — SiriusXM")
 
         // Radio only: there is no TV/video browsing tab.
         XCTAssertFalse(app.buttons["Browse"].exists, "TV browsing must not exist in a radio-only app")
@@ -95,8 +113,8 @@ final class IPTVRadioUITests: XCTestCase {
         searchField.tap()
         searchField.typeText("Jazz")
 
-        XCTAssertTrue(app.staticTexts["Jazz Cafe Radio"].waitForExistence(timeout: 8))
-        capture(app, name: "Shell — Search")
+        XCTAssertTrue(app.buttons["station.row.Jazz Cafe Radio"].waitForExistence(timeout: 8))
+        capture(app, name: "Workspace — Search")
     }
 
     func testGenreShortcutsUseRealStationSearchAndClearReturnsToDiscovery() throws {
@@ -104,11 +122,11 @@ final class IPTVRadioUITests: XCTestCase {
         app.buttons["Search"].tap()
         let shortcut = app.buttons["search.suggestion.jazz"]
         XCTAssertTrue(shortcut.waitForExistence(timeout: 8))
-        capture(app, name: "Graphite — Search discovery")
+        capture(app, name: "Workspace — Search discovery")
         shortcut.tap()
         let field = app.textFields["search.field"]
         XCTAssertEqual(field.value as? String, "Jazz")
-        XCTAssertTrue(app.staticTexts["Jazz Cafe Radio"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["station.row.Jazz Cafe Radio"].waitForExistence(timeout: 8))
         XCTAssertFalse(app.buttons["station.row.SiriusXM Hits 1"].exists)
         app.buttons["Clear search"].tap()
         XCTAssertTrue(shortcut.waitForExistence(timeout: 8))
@@ -122,12 +140,12 @@ final class IPTVRadioUITests: XCTestCase {
     func testManualRadioStationCanBeAddedPlayedAndRemoved() throws {
         let app = launch(scenario: "UITestBrowse")
         XCTAssertTrue(app.staticTexts["Your Radio stations"].waitForExistence(timeout: 8))
-        capture(app, name: "Shell — Radio")
+        capture(app, name: "Workspace — Radio")
 
         app.buttons["manual.addEmpty"].tap()
         let name = app.textFields["manual.name"]
         XCTAssertTrue(name.waitForExistence(timeout: 8))
-        capture(app, name: "Graphite — Station editor")
+        capture(app, name: "Workspace — Station editor")
         name.tap()
         name.typeText("My Test Radio")
         let url = app.textFields["manual.url"]
@@ -140,8 +158,8 @@ final class IPTVRadioUITests: XCTestCase {
         row.tap()
         XCTAssertTrue(app.buttons["miniplayer.open"].waitForExistence(timeout: 8))
 
-        row.swipeLeft()
-        app.buttons["Delete"].tap()
+        app.buttons["manual.manage.My Test Radio"].tap()
+        app.buttons["Delete Station"].tap()
         XCTAssertTrue(app.staticTexts["Your Radio stations"].waitForExistence(timeout: 8))
     }
 
@@ -149,9 +167,10 @@ final class IPTVRadioUITests: XCTestCase {
         let app = launch(scenario: "UITestBrowse")
         app.buttons["manual.dialEmpty"].tap()
         XCTAssertTrue(app.navigationBars["Aether Dial"].waitForExistence(timeout: 8))
+        app.descendants(matching: .any).matching(identifier: "dial.filters").firstMatch.tap()
         XCTAssertTrue(app.textFields["dial.place"].exists)
         XCTAssertTrue(app.buttons["dial.search"].exists)
-        capture(app, name: "Graphite — Dial")
+        capture(app, name: "Workspace — Dial")
         XCTAssertTrue(app.buttons["Listen to Dial Jazz"].waitForExistence(timeout: 8))
         app.swipeUp()
         app.buttons["Listen to Dial Jazz"].tap()
@@ -166,10 +185,10 @@ final class IPTVRadioUITests: XCTestCase {
 
         // Two stations were favorited by the mock scenario.
         app.buttons["Favorites"].tap()
-        XCTAssertTrue(app.navigationBars["Favorites"].waitForExistence(timeout: 8))
-        XCTAssertTrue(app.staticTexts["SiriusXM Hits 1"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["page.title.Favorites"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["station.row.SiriusXM Hits 1"].waitForExistence(timeout: 8))
 
-        capture(app, name: "Shell — Favorites")
+        capture(app, name: "Workspace — Favorites")
 
         // Favorites must be playable from the Favorites tab.
         app.buttons["station.row.SiriusXM Hits 1"].firstMatch.tap()
@@ -186,13 +205,16 @@ final class IPTVRadioUITests: XCTestCase {
         let octane = app.buttons["station.row.SiriusXM Octane"].firstMatch
         XCTAssertTrue(hits.waitForExistence(timeout: 8))
         XCTAssertTrue(octane.exists)
-        let hitsWasBelow = hits.frame.minY > octane.frame.minY
+        let hitsWasBelow = hits.frame.minY > octane.frame.minY + 2
+            || (abs(hits.frame.minY - octane.frame.minY) <= 2 && hits.frame.minX > octane.frame.minX)
         let lowerName = hitsWasBelow ? "SiriusXM Hits 1" : "SiriusXM Octane"
         app.buttons["reorder.up.\(lowerName)"].tap()
         if hitsWasBelow {
-            XCTAssertLessThan(hits.frame.minY, octane.frame.minY)
+            XCTAssertTrue(hits.frame.minY < octane.frame.minY - 2
+                || (abs(hits.frame.minY - octane.frame.minY) <= 2 && hits.frame.minX < octane.frame.minX))
         } else {
-            XCTAssertLessThan(octane.frame.minY, hits.frame.minY)
+            XCTAssertTrue(octane.frame.minY < hits.frame.minY - 2
+                || (abs(hits.frame.minY - octane.frame.minY) <= 2 && octane.frame.minX < hits.frame.minX))
         }
     }
 
@@ -200,7 +222,9 @@ final class IPTVRadioUITests: XCTestCase {
         let app = launch(scenario: "UITestNowPlaying")
 
         // Mini player visible with the playing station.
-        XCTAssertTrue(app.staticTexts["SiriusXM Hits 1"].waitForExistence(timeout: 8))
+        let activePlayer = app.buttons["miniplayer.open"]
+        XCTAssertTrue(activePlayer.waitForExistence(timeout: 8))
+        XCTAssertTrue((activePlayer.value as? String)?.contains("SiriusXM Hits 1") == true)
         let toggle = app.buttons["miniplayer.toggle"]
         if !toggle.waitForExistence(timeout: 8) {
             XCTFail("Mini player not visible. Hierarchy:\n\(app.debugDescription)")
@@ -210,7 +234,7 @@ final class IPTVRadioUITests: XCTestCase {
         app.buttons["Settings"].tap()
         XCTAssertTrue(app.buttons["settings.category.account"].waitForExistence(timeout: 8),
                       "Tab bar must remain reachable during playback")
-        capture(app, name: "Graphite — Settings with vinyl mini player")
+        capture(app, name: "Workspace — Settings with vinyl mini player")
         app.buttons["SXM"].tap()
         XCTAssertTrue(app.buttons["miniplayer.open"].waitForExistence(timeout: 8))
 
@@ -230,7 +254,7 @@ final class IPTVRadioUITests: XCTestCase {
         let stageMidY = (app.buttons["nowplaying.close"].frame.maxY + status.frame.minY) / 2
         XCTAssertEqual(vinyl.frame.midY, stageMidY, accuracy: 3,
                        "Center the record in the free space between the header and track details")
-        capture(app, name: "Graphite — Now Playing with preserved vinyl")
+        capture(app, name: "Workspace — Now Playing with preserved vinyl")
 
         app.buttons["nowplaying.close"].tap()
         XCTAssertTrue(app.buttons["miniplayer.open"].waitForExistence(timeout: 8),
@@ -281,29 +305,32 @@ final class IPTVRadioUITests: XCTestCase {
         XCTAssertTrue(mini.waitForExistence(timeout: 8), "Closing still retains playback")
     }
 
-    func testLiquidGlassSettingKeepsNavigationAndMiniPlayer() throws {
+    func testTranslucentHeaderSettingKeepsNavigationAndMiniPlayer() throws {
         let app = launch(scenario: "UITestNowPlaying")
         app.buttons["Settings"].tap()
-        app.buttons["settings.category.app"].tap()
+        openSettingsCategory("app", in: app)
 
         let liquidGlassSwitch = app.descendants(matching: .any)
             .matching(identifier: "settings.liquidGlass")
             .firstMatch
         XCTAssertTrue(liquidGlassSwitch.waitForExistence(timeout: 8))
-        if !app.buttons["tab.favorites"].exists {
-            liquidGlassSwitch.tap()
-        }
+        let original = try XCTUnwrap(liquidGlassSwitch.value as? String)
+        liquidGlassSwitch.tap()
+        let changed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value != %@", original), object: liquidGlassSwitch)
+        XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 3), .completed)
 
         let flatFavorites = app.buttons["tab.favorites"]
         if !flatFavorites.waitForExistence(timeout: 8) {
-            XCTFail("Lineup floating navigation did not appear after switching modes. Hierarchy:\n\(app.debugDescription)")
+            XCTFail("Workspace navigation must remain available. Hierarchy:\n\(app.debugDescription)")
         }
         XCTAssertTrue(app.buttons["miniplayer.open"].exists)
         flatFavorites.tap()
-        XCTAssertTrue(app.navigationBars["Favorites"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["page.title.Favorites"].waitForExistence(timeout: 8))
         app.buttons["tab.settings"].tap()
-        app.buttons["settings.category.app"].tap()
+        openSettingsCategory("app", in: app)
         liquidGlassSwitch.tap()
+        let restored = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", original), object: liquidGlassSwitch)
+        XCTAssertEqual(XCTWaiter.wait(for: [restored], timeout: 3), .completed)
 
         XCTAssertTrue(app.buttons["SXM"].waitForExistence(timeout: 8))
         XCTAssertTrue(app.buttons["miniplayer.open"].exists)
@@ -313,13 +340,14 @@ final class IPTVRadioUITests: XCTestCase {
         let app = launch(scenario: "UITestBrowse")
         app.buttons["Settings"].tap()
 
+        openSettingsCategory("account", in: app)
         XCTAssertTrue(app.buttons["settings.signOut"].waitForExistence(timeout: 8))
         capture(app, name: "Rounded type — Settings Account")
-        app.buttons["settings.category.stations"].tap()
+        openSettingsCategory("stations", in: app)
         XCTAssertTrue(app.descendants(matching: .any)
             .matching(identifier: "settings.siriusOnly").firstMatch.waitForExistence(timeout: 8))
         capture(app, name: "Rounded type — Settings Stations")
-        app.buttons["settings.category.playback"].tap()
+        openSettingsCategory("playback", in: app)
         XCTAssertTrue(app.descendants(matching: .any)
             .matching(identifier: "settings.cellular").firstMatch.waitForExistence(timeout: 8))
         XCTAssertTrue(app.descendants(matching: .any)
@@ -332,11 +360,11 @@ final class IPTVRadioUITests: XCTestCase {
         let changed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value != %@", original), object: cellular)
         XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 3), .completed)
         let updated = try XCTUnwrap(cellular.value as? String)
-        app.buttons["settings.category.app"].tap()
+        openSettingsCategory("app", in: app)
         XCTAssertTrue(app.descendants(matching: .any)
             .matching(identifier: "settings.liquidGlass").firstMatch.waitForExistence(timeout: 8))
         capture(app, name: "Rounded type — Settings App")
-        app.buttons["settings.category.playback"].tap()
+        openSettingsCategory("playback", in: app)
         XCTAssertTrue(cellular.waitForExistence(timeout: 8))
         XCTAssertEqual(cellular.value as? String, updated, "The styled switch must keep its real Settings binding")
         cellular.tap()
@@ -344,7 +372,7 @@ final class IPTVRadioUITests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [restored], timeout: 3), .completed)
     }
 
-    func testLineupFloatingControlsLeaveStationNavigationAndStopReachable() throws {
+    func testWorkspaceHeaderAndBottomPlaybackShelfStayIndependentlyReachable() throws {
         let app = launch(scenario: "UITestNowPlaying")
         let first = app.buttons["tab.radio"]
         let last = app.buttons["tab.settings"]
@@ -352,16 +380,43 @@ final class IPTVRadioUITests: XCTestCase {
         XCTAssertTrue(last.isHittable)
         let mini = app.buttons["miniplayer.open"].firstMatch
         XCTAssertTrue(mini.waitForExistence(timeout: 8))
-        XCTAssertLessThanOrEqual(mini.frame.maxY, first.frame.minY,
-                                 "Vinyl mini player must not cover the floating navigation")
+        let header = app.descendants(matching: .any).matching(identifier: "aether.navigation.header").firstMatch
+        XCTAssertTrue(header.waitForExistence(timeout: 8))
+        XCTAssertLessThanOrEqual(header.frame.maxY, mini.frame.minY,
+                                 "Navigation at the top and playback at the bottom must not overlap")
         XCTAssertGreaterThanOrEqual(first.frame.minX, app.frame.minX + 20)
         XCTAssertLessThanOrEqual(last.frame.maxX, app.frame.maxX - 20)
         app.buttons["tab.favorites"].tap()
-        XCTAssertTrue(app.navigationBars["Favorites"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["page.title.Favorites"].waitForExistence(timeout: 8))
         XCTAssertTrue(app.buttons["miniplayer.stop"].isHittable)
-        capture(app, name: "Graphite — compact controls and station clearance")
+        capture(app, name: "Workspace — compact controls and station clearance")
         app.buttons["miniplayer.stop"].tap()
         XCTAssertTrue(mini.waitForNonExistence(timeout: 8))
         XCTAssertTrue(last.isHittable)
+    }
+
+    func testPresetFavoriteActionDoesNotStartPlayback() throws {
+        let app = launch(scenario: "UITestFavorites")
+        app.buttons["tab.favorites"].tap()
+        let favorite = app.buttons["station.favorite.SiriusXM Hits 1"]
+        XCTAssertTrue(favorite.waitForExistence(timeout: 8))
+        XCTAssertGreaterThanOrEqual(favorite.frame.width, 44)
+        XCTAssertGreaterThanOrEqual(favorite.frame.height, 44)
+        XCTAssertFalse(app.buttons["miniplayer.open"].exists)
+        favorite.tap()
+        XCTAssertTrue(app.buttons["station.row.SiriusXM Hits 1"].waitForNonExistence(timeout: 8))
+        XCTAssertFalse(app.buttons["miniplayer.open"].exists, "Favorite and playback must be independent controls")
+    }
+
+    func testAccountPageCanCancelSignOutAndReturnToSettings() throws {
+        let app = launch(scenario: "UITestBrowse")
+        app.buttons["tab.settings"].tap()
+        openSettingsCategory("account", in: app)
+        app.buttons["settings.signOut"].tap()
+        XCTAssertTrue(app.alerts["Sign out?"].waitForExistence(timeout: 8))
+        app.alerts["Sign out?"].buttons["Cancel"].tap()
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.buttons["settings.category.playback"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["tab.radio"].isHittable)
     }
 }

@@ -1,155 +1,111 @@
 import SwiftUI
 
-/// One station row with artwork, favorite toggle and live state.
+/// Directory rows and open station presets share playback actions, not layout.
+/// Favorite and play are sibling buttons, so each keeps its own touch target.
 struct StationRow: View {
     @EnvironmentObject private var environment: AppEnvironment
     @EnvironmentObject private var playback: PlaybackEngine
     @EnvironmentObject private var favorites: FavoritesStore
     @EnvironmentObject private var library: LibraryViewModel
     @EnvironmentObject private var manualStations: ManualStationStore
-
     let station: RadioStation
+    var preset = false
+    var position: Int?
 
     private var displayedStation: RadioStation {
         station.source == .manual ? (manualStations.station(id: station.id) ?? station) : station
     }
-
-    var isCurrent: Bool {
-        playback.state.station?.id == station.id
-    }
+    var isCurrent: Bool { playback.state.station?.id == station.id }
 
     var body: some View {
-        Button {
-            // Favorites and history may hold station copies saved by older
-            // app versions (with stale stream URLs). Always play the fresh
-            // library copy when one is available.
-            let fresh = station.source == .manual
-                ? displayedStation
-                : library.freshStation(matching: station)
-            playback.play(fresh, in: nil)
-            if let directoryID = fresh.directoryStationID {
-                let service = AetherDialService(httpClient: environment.httpClient)
-                Task { await service.registerClick(stationID: directoryID) }
-            }
-        } label: {
-            HStack(spacing: 16) {
-                StationArtwork(logoURL: displayedStation.logoURL, size: 54)
-                    .frame(width: 64, height: 64)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(station.name)
-                        .font(.radio(17, .semibold))
-                        .foregroundStyle(AetherTheme.primaryText)
-                        .lineLimit(2)
-                    if !station.groupTitle.isEmpty {
-                        Text(station.groupTitle)
-                            .font(.radio(12, .medium))
-                            .tracking(0.15)
-                            .foregroundStyle(AetherTheme.secondaryText)
-                            .lineLimit(1)
+        VStack(alignment: .leading, spacing: 0) {
+            if preset {
+                HStack {
+                    Text(position.map { String(format: "%02d", $0) } ?? "")
+                        .font(.radio(.caption, .medium)).foregroundStyle(AetherTheme.mutedIcon)
+                    Spacer(minLength: 8)
+                    favoriteButton
+                }
+                Button(action: play) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        StationArtwork(logoURL: displayedStation.logoURL, size: 76)
+                            .frame(maxWidth: .infinity, minHeight: 88, alignment: .center)
+                        stationText
                     }
-                }
-
-                Spacer(minLength: 8)
-
-                if isCurrent {
-                    playbackStateBadge
-                }
-
-                Button {
-                    favorites.toggle(displayedStation)
-                } label: {
-                    Image(systemName: favorites.isFavorite(station) ? "star.fill" : "star")
-                        .font(.radio(19, .medium))
-                        .foregroundStyle(favorites.isFavorite(station) ? AetherTheme.accent : AetherTheme.mutedIcon)
-                        .frame(width: 44, height: 44)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.bottom, 20).contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(favorites.isFavorite(station) ? "Remove from favorites" : "Add to favorites")
-                .accessibilityIdentifier("station.favorite.\(station.name)")
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(isCurrent ? AetherTheme.selected : .clear,
-                        in: RoundedRectangle(cornerRadius: AetherTheme.compactRadius, style: .continuous))
-            .overlay(alignment: .bottom) {
-                AetherTheme.divider.opacity(0.7).frame(height: 0.5)
-                    .padding(.leading, 92)
-            }
-            .overlay(alignment: .leading) {
-                if isCurrent {
-                    Rectangle().fill(AetherTheme.accent)
-                        .frame(width: 2, height: 32)
+                .accessibilityIdentifier("station.row.\(station.name)")
+                .accessibilityLabel(station.name)
+                .accessibilityHint("Plays this station")
+                AetherTheme.divider.frame(height: 0.5)
+            } else {
+                HStack(spacing: 12) {
+                    Button(action: play) {
+                        HStack(spacing: 16) {
+                            StationArtwork(logoURL: displayedStation.logoURL, size: 36)
+                                .frame(width: 40, height: 44)
+                            stationText
+                            Spacer(minLength: 0)
+                            if isCurrent { stateIcon }
+                        }
+                        .frame(minHeight: 72).contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("station.row.\(station.name)")
+                    .accessibilityLabel(station.name)
+                    .accessibilityHint("Plays this station")
+                    favoriteButton
                 }
+                AetherTheme.divider.frame(height: 0.5)
             }
-            .contentShape(Rectangle())
+        }
+        .listRowBackground(Color.clear).listRowSeparator(.hidden)
+        .listRowInsets(EdgeInsets(top: 0, leading: 24, bottom: 0, trailing: 24))
+    }
+
+    private var stationText: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(station.name).font(.radio(.subheadline, .bold))
+                .foregroundStyle(AetherTheme.primaryText).lineLimit(2)
+            if isCurrent {
+                Label(playback.state.isPlaying ? "Playing" : "Selected", systemImage: "waveform")
+                    .font(.radio(.caption)).foregroundStyle(AetherTheme.caption)
+            } else if !station.groupTitle.isEmpty {
+                Text(station.groupTitle).font(.radio(.caption))
+                    .foregroundStyle(AetherTheme.secondaryText).lineLimit(1)
+            }
+        }
+    }
+
+    private var favoriteButton: some View {
+        Button { favorites.toggle(displayedStation) } label: {
+            Image(systemName: favorites.isFavorite(station) ? "star.fill" : "star")
+                .font(.radio(16, .regular)).foregroundStyle(AetherTheme.mutedIcon)
+                .frame(width: 44, height: 44).contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .listRowBackground(Color.clear)
-        .listRowSeparator(.hidden)
-        .listRowInsets(EdgeInsets(top: 2, leading: 8, bottom: 2, trailing: 8))
-        .accessibilityIdentifier("station.row.\(station.name)")
-        .accessibilityElement(children: .combine)
-        .accessibilityHint("Plays this station")
+        .accessibilityLabel(favorites.isFavorite(station) ? "Remove from favorites" : "Add to favorites")
+        .accessibilityIdentifier("station.favorite.\(station.name)")
     }
 
-    @ViewBuilder
-    private var playbackStateBadge: some View {
-        switch playback.state {
-        case .playing:
-            LiveActivityBadge()
-        case .paused:
-            HStack(spacing: 4) {
-                Image(systemName: "pause.fill")
-                    .font(.radio(.caption2))
-                Text("Paused")
-                    .font(.radio(.caption2, .semibold))
-            }
-            .foregroundStyle(AetherTheme.secondaryText)
-        case .loading:
-            ProgressView().controlSize(.small)
-        case .failed:
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.radio(.caption))
-                .foregroundStyle(AetherTheme.warning)
-        default:
-            EmptyView()
+    @ViewBuilder private var stateIcon: some View {
+        if playback.state.isBusy { ProgressView().controlSize(.small) }
+        else { Image(systemName: playback.state.isPlaying ? "waveform" : "pause.fill")
+            .foregroundStyle(AetherTheme.mutedIcon).font(.radio(.caption)) }
+    }
+
+    private func play() {
+        let fresh = station.source == .manual ? displayedStation : library.freshStation(matching: station)
+        playback.play(fresh, in: nil)
+        if let directoryID = fresh.directoryStationID {
+            let service = AetherDialService(httpClient: environment.httpClient)
+            Task { await service.registerClick(stationID: directoryID) }
         }
     }
 }
 
-/// A restrained, continuously moving five-band signal for the active row.
-/// TimelineView only runs while this one row is playing, and respects the
-/// system's Reduce Motion setting.
-private struct LiveActivityBadge: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: reduceMotion)) { context in
-            HStack(alignment: .center, spacing: 2) {
-                ForEach(0..<5, id: \.self) { index in
-                    Capsule()
-                        .fill(AetherTheme.accent)
-                        .frame(width: 3, height: barHeight(index, at: context.date))
-                }
-            }
-            .frame(width: 23, height: 18)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Playing live")
-    }
-
-    private func barHeight(_ index: Int, at date: Date) -> CGFloat {
-        let peaks: [CGFloat] = [10, 14, 17, 14, 10]
-        guard !reduceMotion else { return peaks[index] }
-        let cycle = date.timeIntervalSinceReferenceDate * (2 * Double.pi / 2.4)
-        // A single peak travels across the bars and eases into each reversal.
-        let center = 2 + 1.6 * sin(cycle)
-        let distance = Double(index) - center
-        let level = exp(-0.8 * distance * distance)
-        return 4 + (peaks[index] - 4) * CGFloat(0.2 + 0.8 * level)
-    }
-}
 
 /// A station's channel logo.
 ///

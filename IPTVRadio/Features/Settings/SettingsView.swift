@@ -19,86 +19,94 @@ struct SettingsView: View {
 
     @State private var confirmSignOut = false
     @State private var cacheCleared = false
-    @State private var selectedCategory: SettingsCategory = .account
-
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
+            ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    RadioPageHeading(title: "Settings", subtitle: "Manage your account and preferences.")
-                        .padding(.horizontal, 20)
-                    categoryBar
-                }
-                .padding(.top, 12)
-
-                AetherTheme.border.opacity(0.65)
-                    .frame(height: 1)
-
-                ScrollView {
-                    VStack(alignment: .leading, spacing: AetherTheme.panelGap) {
-                        switch selectedCategory {
-                        case .account:
-                            accountSection
-                        case .stations:
-                            filteringSection
-                        case .playback:
-                            playbackSection
-                        case .app:
-                            appearanceSection
-                            cacheSection
-                            privacySection
+                    RadioPageHeading(title: "Settings", subtitle: "Your account. Your preferences.")
+                    ForEach(SettingsCategory.allCases) { category in
+                        NavigationLink {
+                            categoryPage(category)
+                        } label: {
+                            HStack(spacing: 16) {
+                                Image(systemName: categorySymbol(category)).font(.radio(20, .regular))
+                                    .frame(width: 28).foregroundStyle(AetherTheme.mutedIcon)
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text(category.rawValue).font(.radio(.body, .semibold))
+                                    Text(categoryDescription(category)).font(.radio(.caption))
+                                        .foregroundStyle(AetherTheme.secondaryText)
+                                }
+                                Spacer(minLength: 8)
+                                Image(systemName: "chevron.right").font(.radio(12))
+                                    .foregroundStyle(AetherTheme.mutedIcon)
+                            }
+                            .frame(minHeight: 88).contentShape(Rectangle())
+                            .overlay(alignment: .bottom) { AetherTheme.divider.frame(height: 0.5) }
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("settings.category.\(category.rawValue.lowercased())")
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 22)
-                    .padding(.bottom, 32)
+                    Text(versionLabel)
+                        .font(.radio(.caption)).foregroundStyle(AetherTheme.mutedIcon).padding(.top, 32)
+                        .accessibilityIdentifier("settings.version")
                 }
-                .scrollIndicators(.hidden)
-                .id(selectedCategory)
+                .padding(.horizontal, 24).padding(.bottom, 32)
             }
-            .background(AetherTheme.background.ignoresSafeArea())
-            .toggleStyle(SwitchToggleStyle(tint: AetherTheme.accent))
+            .background(AetherTheme.canvas.ignoresSafeArea())
+            .navigationTitle("Settings")
             .toolbar(.hidden, for: .navigationBar)
-            .alert("Sign out?", isPresented: $confirmSignOut) {
-                Button("Sign Out", role: .destructive) {
-                    playback.stop()
-                    auth.signOut()
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Credentials are removed from the Keychain and cached data is cleared.")
-            }
+        }
+        .alert("Sign out?", isPresented: $confirmSignOut) {
+            Button("Sign Out", role: .destructive) { playback.stop(); auth.signOut() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Credentials are removed from the Keychain and cached data is cleared.")
         }
     }
 
-    private var categoryBar: some View {
-        HStack(spacing: 12) {
-            ForEach(SettingsCategory.allCases) { category in
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        selectedCategory = category
-                    }
-                } label: {
-                    Text(category.rawValue)
-                        .font(.radio(14, .bold))
-                        .lineLimit(1).minimumScaleFactor(0.75)
-                        .foregroundStyle(selectedCategory == category
-                            ? AetherTheme.primaryText : AetherTheme.mutedIcon)
-                        .padding(.vertical, 14)
-                        .frame(maxWidth: .infinity)
-                        .overlay(alignment: .bottom) {
-                            Rectangle().fill(selectedCategory == category ? AetherTheme.accent : .clear)
-                                .frame(height: 2)
-                        }
-                        .contentShape(Rectangle())
+    private func categoryPage(_ category: SettingsCategory) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 32) {
+                switch category {
+                case .account: accountSection
+                case .stations: filteringSection
+                case .playback: playbackSection
+                case .app:
+                    appearanceSection
+                    cacheSection
+                    privacySection
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("settings.category.\(category.rawValue.lowercased())")
-                .accessibilityValue(selectedCategory == category ? "Selected" : "")
             }
+            .padding(.horizontal, 24).padding(.top, 20).padding(.bottom, 32)
         }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 0)
+        .background(AetherTheme.canvas.ignoresSafeArea())
+        .navigationTitle(category.rawValue).navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
+    }
+
+    private var versionLabel: String {
+        let info = Bundle.main.infoDictionary ?? [:]
+        let version = info["CFBundleShortVersionString"] as? String ?? ""
+        let build = info["CFBundleVersion"] as? String ?? ""
+        return "Aether \(version) (\(build))"
+    }
+
+    private func categorySymbol(_ category: SettingsCategory) -> String {
+        switch category {
+        case .account: "person.crop.circle"
+        case .stations: "antenna.radiowaves.left.and.right"
+        case .playback: "waveform"
+        case .app: "slider.horizontal.3"
+        }
+    }
+
+    private func categoryDescription(_ category: SettingsCategory) -> String {
+        switch category {
+        case .account: "Subscription and sign-in"
+        case .stations: "Filtering and detection"
+        case .playback: "Streaming, metadata and output"
+        case .app: "Appearance, storage and privacy"
+        }
     }
 
     private var appearanceSection: some View {
@@ -106,10 +114,10 @@ struct SettingsView: View {
             AetherLabeledValue("Appearance", value: "Dark")
                 .aetherSettingsRow()
             settingsDivider
-            AetherSettingToggle("Liquid Glass navigation", isOn: $settings.liquidGlassEnabled)
+            AetherSettingToggle("Translucent navigation", isOn: $settings.liquidGlassEnabled)
                 .accessibilityIdentifier("settings.liquidGlass")
                 .aetherSettingsRow()
-            settingsFooter("Turn off for solid navigation. Liquid Glass is available on iOS 26 and later.")
+            settingsFooter("Adds a subtle material to the top navigation. Turn off for a solid background.")
         }
     }
 
@@ -315,10 +323,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 0) {
                 content()
             }
-            .padding(.horizontal, AetherTheme.panelInset)
             .padding(.vertical, 8)
-            .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: AetherTheme.panelRadius))
-            .overlay(RoundedRectangle(cornerRadius: AetherTheme.panelRadius).strokeBorder(AetherTheme.divider, lineWidth: 0.5))
         }
         .foregroundStyle(AetherTheme.primaryText)
         .tint(AetherTheme.accent)

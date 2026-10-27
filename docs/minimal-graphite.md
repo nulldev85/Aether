@@ -1,5 +1,8 @@
 # Minimal Graphite revision
 
+Historical layout: superseded by [the workspace overhaul](workspace-overhaul.md).
+The dim palette remains; the floating dock, cards and screen structure do not.
+
 The user rejected After Hours and requested minimal, sleek, professional and dim.
 This replaces that look, not just its copper accent. The historical After Hours
 document is no longer the active visual specification.

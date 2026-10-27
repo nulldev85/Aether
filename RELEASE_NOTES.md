@@ -1,7 +1,8 @@
 ## What's new
 
-- A minimal dark interface with dim graphite surfaces, soft gray text and neutral controls.
-- Simpler navigation and playback controls, without bright fills, tuning scales or decorative borders.
-- Compact headings and clearer layouts throughout Settings, Search, Aether Dial and sign-in.
-- Start a search with a genre shortcut, then explore the matching stations in your own lineup.
-- The rounded font and spinning vinyl are unchanged, and full-player controls stay at the bottom of the screen.
+- A new layout built around simple navigation at the top and a full-width player at the bottom.
+- Radio and Favorites now show spacious station presets with transparent logos and numbered positions.
+- Settings has dedicated pages for your account, stations, playback and app preferences.
+- Search has a genre grid, and Aether Dial keeps location and genre filters in an expandable section.
+- A cleaner full player with left-aligned song details and unboxed controls, keeping the centered spinning vinyl.
+- Dim charcoal surfaces and gray controls throughout, with the same rounded typeface.

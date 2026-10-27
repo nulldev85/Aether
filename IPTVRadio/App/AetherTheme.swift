@@ -59,18 +59,7 @@ extension Font {
 }
 
 enum AetherNavigationLayout {
-    // The new dock retains the tested single-owner clearance and safe-area
-    // arithmetic. Appearance must not recreate the old navigation overlap.
-    static let sideMargin: CGFloat = 20
-    static let padding: CGFloat = 4
-    static let itemHeight: CGFloat = 54
-    static let navigationHeight: CGFloat = 62
-    static let playerGap: CGFloat = 8
-
-    static func bottomGap(safeAreaBottom: CGFloat) -> CGFloat { safeAreaBottom > 0 ? 20 : 8 }
-
-    static func reservedHeight(hasPlayer: Bool, playerHeight: CGFloat, safeAreaBottom: CGFloat) -> CGFloat {
-        max(0, navigationHeight + bottomGap(safeAreaBottom: safeAreaBottom)
-            + (hasPlayer ? playerHeight + playerGap : 0) - max(0, safeAreaBottom))
-    }
+    static let sideMargin: CGFloat = 24
+    static let utilityTarget: CGFloat = 48
+    static let minimumTarget: CGFloat = 44
 }
