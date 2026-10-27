@@ -3,45 +3,19 @@ import SwiftUI
 struct RadioPageHeading: View {
     let title: String
     let subtitle: String
-    var eyebrow = "AETHER / PERSONAL RADIO"
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 7) {
-                Rectangle().fill(AetherTheme.accent).frame(width: 16, height: 3)
-                Text(eyebrow).font(.radio(10, .heavy)).tracking(1.8)
-                    .foregroundStyle(AetherTheme.accent)
-            }
-            Text(title).font(AetherTheme.displayFont)
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(.radio(.title2, .heavy))
                 .foregroundStyle(AetherTheme.primaryText)
                 .accessibilityAddTraits(.isHeader)
-            Text(subtitle).font(.radio(.subheadline))
-                .foregroundStyle(AetherTheme.secondaryText)
-                .fixedSize(horizontal: false, vertical: true)
-            AetherTuningRule().padding(.top, 8)
+            if !subtitle.isEmpty {
+                Text(subtitle).font(.radio(.subheadline))
+                    .foregroundStyle(AetherTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 18).padding(.bottom, 20)
-    }
-}
-
-/// A static tuning scale, not a fake signal meter or an audio visualizer.
-struct AetherTuningRule: View {
-    var body: some View {
-        GeometryReader { geometry in
-            HStack(alignment: .bottom, spacing: 0) {
-                ForEach(0..<45, id: \.self) { tick in
-                    Rectangle().fill(AetherTheme.divider)
-                        .frame(width: 1, height: tick.isMultiple(of: 5) ? 15 : 6)
-                        .frame(maxWidth: .infinity)
-                }
-            }
-            Rectangle().fill(AetherTheme.accent).frame(width: 3, height: 22)
-                .position(x: geometry.size.width * 0.36, y: 11)
-        }
-        .frame(height: 22)
-        .accessibilityHidden(true)
-        .allowsHitTesting(false)
+        .padding(.top, 12).padding(.bottom, 16)
     }
 }
 
@@ -51,7 +25,7 @@ struct AetherSectionLabel: View {
 
     var body: some View {
         HStack {
-            Text(title.uppercased()).font(.radio(10, .heavy)).tracking(1.4)
+            Text(title).font(.radio(.footnote, .semibold))
             Spacer(minLength: 8)
             Text(detail).font(.radio(11, .medium))
         }
@@ -61,7 +35,7 @@ struct AetherSectionLabel: View {
     }
 }
 
-/// A monochrome etched symbol, never a colored app-icon tile.
+/// Quiet symbols without decorative boxes or background tiles.
 struct AetherIconTile: View {
     let symbol: String
     var size: CGFloat = 30
@@ -69,9 +43,8 @@ struct AetherIconTile: View {
     var body: some View {
         Image(systemName: symbol)
             .font(.radio(size * 0.5, .semibold))
-            .foregroundStyle(AetherTheme.accent)
+            .foregroundStyle(AetherTheme.mutedIcon)
             .frame(width: size, height: size)
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(AetherTheme.divider, lineWidth: 1))
             .accessibilityHidden(true)
     }
 }
@@ -83,12 +56,12 @@ struct AetherPanelHeader: View {
     var body: some View {
         HStack(spacing: 8) {
             AetherIconTile(symbol: symbol, size: 24)
-            Text(title.uppercased()).font(.radio(12, .heavy)).tracking(1.6)
+            Text(title).font(.radio(.footnote, .semibold))
                 .accessibilityAddTraits(.isHeader)
             Spacer(minLength: 8)
         }
-        .foregroundStyle(AetherTheme.accent)
-        .padding(.top, 18).padding(.bottom, 16)
+        .foregroundStyle(AetherTheme.secondaryText)
+        .padding(.top, 10).padding(.bottom, 10)
     }
 }
 
@@ -99,8 +72,7 @@ struct AetherButtonStyle: ButtonStyle {
             .foregroundStyle(configuration.role == .destructive ? AetherTheme.destructive : (prominent ? AetherTheme.onAccent : AetherTheme.primaryText))
             .padding(.horizontal, 20).padding(.vertical, 12)
             .frame(minHeight: 48)
-            .background(prominent ? AetherTheme.accent : AetherTheme.surface, in: RoundedRectangle(cornerRadius: AetherTheme.compactRadius))
-            .overlay(RoundedRectangle(cornerRadius: AetherTheme.compactRadius).strokeBorder(prominent ? .clear : AetherTheme.divider, lineWidth: 1))
+            .background(prominent ? AetherTheme.selected : AetherTheme.surface, in: RoundedRectangle(cornerRadius: AetherTheme.compactRadius))
             .opacity(configuration.isPressed ? 0.75 : 1)
     }
 }
@@ -111,8 +83,7 @@ struct AetherBarButtonStyle: ButtonStyle {
         configuration.label.font(.radio(15, .semibold))
             .foregroundStyle(prominent ? AetherTheme.onAccent : AetherTheme.primaryText)
             .padding(.horizontal, 14).frame(minHeight: 36)
-            .background(prominent ? AetherTheme.accent : AetherTheme.surface, in: RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(AetherTheme.border, lineWidth: 1))
+            .background(prominent ? AetherTheme.selected : AetherTheme.surface, in: RoundedRectangle(cornerRadius: 10))
             .opacity(configuration.isPressed ? 0.75 : 1)
     }
 }

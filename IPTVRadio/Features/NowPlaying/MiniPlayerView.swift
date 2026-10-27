@@ -34,7 +34,7 @@ struct MiniPlayerView: View {
                                     .lineLimit(1)
                                 Text(playback.nowPlayingMetadata?.artist ?? stateDescription)
                                     .font(.radio(.caption2))
-                                    .foregroundStyle(AetherTheme.accentSoft)
+                                    .foregroundStyle(AetherTheme.secondaryText)
                                     .lineLimit(1)
                             }
 
@@ -59,7 +59,7 @@ struct MiniPlayerView: View {
                             .font(.radio(18, .bold))
                             .frame(width: 44, height: 44)
                             .foregroundStyle(AetherTheme.onAccent)
-                            .background(AetherTheme.accent, in: RoundedRectangle(cornerRadius: 10))
+                            .background(AetherTheme.selected, in: Circle())
                     }
                     .accessibilityLabel(toggleAccessibilityLabel)
                     .accessibilityIdentifier("miniplayer.toggle")
@@ -79,10 +79,6 @@ struct MiniPlayerView: View {
                 .padding(.vertical, 11)
                 .foregroundStyle(AetherTheme.primaryText)
                 .background(AetherTheme.raisedSurface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 1).fill(AetherTheme.accent)
-                        .frame(width: 2, height: 26).padding(.leading, 1)
-                }
                 .padding(.horizontal, AetherTheme.margin)
                 .task(id: station.id) {
                     stationLogo = nil

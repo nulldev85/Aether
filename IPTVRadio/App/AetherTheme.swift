@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// After Hours: ink, warm ivory and copper. One dark identity, not a
-/// system-dependent palette. SF Pro Rounded is intentionally unchanged.
+/// Graphite: dim neutral surfaces and restrained cool-gray chrome.
+/// SF Pro Rounded and the always-dark appearance are intentionally unchanged.
 enum AetherTheme {
     static func rgb(_ value: UInt32) -> UIColor {
         UIColor(red: CGFloat((value >> 16) & 255) / 255,
@@ -9,30 +9,31 @@ enum AetherTheme {
                 blue: CGFloat(value & 255) / 255, alpha: 1)
     }
 
-    static let uiCanvas = rgb(0x0B0D0C)
-    static let uiNavigationSurface = rgb(0x161B18)
-    static let uiPrimaryText = rgb(0xF4F1EA)
-    static let uiMutedIcon = rgb(0x9BA497)
-    static let uiAccent = rgb(0xEFA66A)
+    static let uiCanvas = rgb(0x101113)
+    static let uiNavigationSurface = rgb(0x181A1D)
+    static let uiPrimaryText = rgb(0xC7CBD1)
+    static let uiMutedIcon = rgb(0x959DA8)
+    static let uiAccent = rgb(0x9CA5B1)
     static let canvas = Color(uiColor: uiCanvas)
     static let surface = Color(uiColor: uiNavigationSurface)
     static let navigationSurface = surface
     static let primaryText = Color(uiColor: uiPrimaryText)
-    static let secondaryText = Color(uiColor: rgb(0xB2B9B0))
-    static let caption = Color(uiColor: rgb(0xCDD3C8))
+    static let secondaryText = Color(uiColor: rgb(0xA2AAB5))
+    static let caption = Color(uiColor: rgb(0xAEB6C1))
     static let mutedIcon = Color(uiColor: uiMutedIcon)
     static let accent = Color(uiColor: uiAccent)
-    static let onAccent = canvas
-    static let accentSoft = Color(uiColor: rgb(0xF7CEAB))
-    static let selected = Color(uiColor: rgb(0x26312A))
-    static let divider = Color(uiColor: rgb(0x354138))
-    static let border = Color(uiColor: rgb(0x354138))
-    static let destructive = Color(uiColor: rgb(0xFF453A))
+    static let onAccent = primaryText
+    static let accentSoft = Color(uiColor: rgb(0xAEB6C1))
+    static let selected = Color(uiColor: rgb(0x292D33))
+    static let divider = Color(uiColor: rgb(0x30353C))
+    static let border = divider
+    static let destructive = Color(uiColor: rgb(0xB28D92))
+    static let warning = Color(uiColor: rgb(0xA69A88))
     static let tabBar = surface
-    static let raisedSurface = Color(uiColor: rgb(0x202822))
+    static let raisedSurface = Color(uiColor: rgb(0x1D2024))
     static let background = canvas
-    static let logoShadow = Color.white.opacity(0.48)
-    static let panelRadius: CGFloat = 18
+    static let logoShadow = Color.white.opacity(0.14)
+    static let panelRadius: CGFloat = 12
     static let compactRadius: CGFloat = 10
     static let margin: CGFloat = 20
     static let panelInset: CGFloat = 18

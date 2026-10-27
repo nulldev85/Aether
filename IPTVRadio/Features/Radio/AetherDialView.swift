@@ -74,7 +74,7 @@ struct AetherDialView: View {
     }
 
     private var introduction: some View {
-        RadioPageHeading(title: "Further afield.", subtitle: "Local voices. Distant cities. Find something new.", eyebrow: "AETHER / EXPLORE THE DIAL")
+        RadioPageHeading(title: "Aether Dial", subtitle: "Find a station by location or genre.")
     }
 
     private var searchControls: some View {
@@ -133,9 +133,8 @@ struct AetherDialView: View {
                                 .padding(.horizontal, 15)
                                 .frame(minHeight: 44)
                                 .foregroundStyle(genre == option ? AetherTheme.onAccent : AetherTheme.accent)
-                                .background(genre == option ? AetherTheme.accent : .clear,
+                                .background(genre == option ? AetherTheme.selected : .clear,
                                             in: RoundedRectangle(cornerRadius: 8))
-                                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(genre == option ? Color.clear : AetherTheme.divider, lineWidth: 1))
                                 .accessibilityAddTraits(genre == option ? .isSelected : [])
                         }
                     }
@@ -164,7 +163,7 @@ struct AetherDialView: View {
                     }
                     .padding(.horizontal, 18)
                     .frame(maxWidth: .infinity, minHeight: 48)
-                    .background(AetherTheme.accent, in: RoundedRectangle(cornerRadius: 10))
+                    .background(AetherTheme.selected, in: RoundedRectangle(cornerRadius: 10))
                 }
                 .buttonStyle(.plain)
                 .disabled(isSearching)

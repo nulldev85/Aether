@@ -25,7 +25,7 @@ struct IPTVRadioApp: App {
         }
         UITabBar.appearance().standardAppearance = tabAppearance
         UITabBar.appearance().scrollEdgeAppearance = tabAppearance
-        // The native option shares the studio dock's copper selection color.
+        // Native and custom navigation share restrained gray selection colors.
         UITabBar.appearance().tintColor = active
         UITabBar.appearance().unselectedItemTintColor = inactive
 

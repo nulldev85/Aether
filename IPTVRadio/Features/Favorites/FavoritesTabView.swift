@@ -18,7 +18,7 @@ struct FavoritesTabView: View {
                     )
                 } else {
                     List {
-                        RadioPageHeading(title: "Favorites", subtitle: "The stations you keep coming back to.", eyebrow: "AETHER / ON REPEAT")
+                        RadioPageHeading(title: "Favorites", subtitle: "Stations you've saved.")
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
                             .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))

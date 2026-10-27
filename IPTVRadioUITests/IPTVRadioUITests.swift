@@ -46,7 +46,7 @@ final class IPTVRadioUITests: XCTestCase {
 
         let serverField = app.textFields["login.server"]
         XCTAssertTrue(serverField.waitForExistence(timeout: 10))
-        capture(app, name: "After Hours — Sign in")
+        capture(app, name: "Graphite — Sign in")
 
         serverField.tap()
         serverField.typeText("https://demo.example.net:8080")
@@ -104,7 +104,7 @@ final class IPTVRadioUITests: XCTestCase {
         app.buttons["Search"].tap()
         let shortcut = app.buttons["search.suggestion.jazz"]
         XCTAssertTrue(shortcut.waitForExistence(timeout: 8))
-        capture(app, name: "After Hours — Search discovery")
+        capture(app, name: "Graphite — Search discovery")
         shortcut.tap()
         let field = app.textFields["search.field"]
         XCTAssertEqual(field.value as? String, "Jazz")
@@ -127,7 +127,7 @@ final class IPTVRadioUITests: XCTestCase {
         app.buttons["manual.addEmpty"].tap()
         let name = app.textFields["manual.name"]
         XCTAssertTrue(name.waitForExistence(timeout: 8))
-        capture(app, name: "After Hours — Station editor")
+        capture(app, name: "Graphite — Station editor")
         name.tap()
         name.typeText("My Test Radio")
         let url = app.textFields["manual.url"]
@@ -151,7 +151,7 @@ final class IPTVRadioUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Aether Dial"].waitForExistence(timeout: 8))
         XCTAssertTrue(app.textFields["dial.place"].exists)
         XCTAssertTrue(app.buttons["dial.search"].exists)
-        capture(app, name: "After Hours — Dial")
+        capture(app, name: "Graphite — Dial")
         XCTAssertTrue(app.buttons["Listen to Dial Jazz"].waitForExistence(timeout: 8))
         app.swipeUp()
         app.buttons["Listen to Dial Jazz"].tap()
@@ -210,7 +210,7 @@ final class IPTVRadioUITests: XCTestCase {
         app.buttons["Settings"].tap()
         XCTAssertTrue(app.buttons["settings.category.account"].waitForExistence(timeout: 8),
                       "Tab bar must remain reachable during playback")
-        capture(app, name: "Lineup style — Settings with vinyl mini player")
+        capture(app, name: "Graphite — Settings with vinyl mini player")
         app.buttons["SXM"].tap()
         XCTAssertTrue(app.buttons["miniplayer.open"].waitForExistence(timeout: 8))
 
@@ -230,7 +230,7 @@ final class IPTVRadioUITests: XCTestCase {
         let stageMidY = (app.buttons["nowplaying.close"].frame.maxY + status.frame.minY) / 2
         XCTAssertEqual(vinyl.frame.midY, stageMidY, accuracy: 3,
                        "Center the record in the free space between the header and track details")
-        capture(app, name: "Lineup style — Now Playing with preserved vinyl")
+        capture(app, name: "Graphite — Now Playing with preserved vinyl")
 
         app.buttons["nowplaying.close"].tap()
         XCTAssertTrue(app.buttons["miniplayer.open"].waitForExistence(timeout: 8),
@@ -359,7 +359,7 @@ final class IPTVRadioUITests: XCTestCase {
         app.buttons["tab.favorites"].tap()
         XCTAssertTrue(app.navigationBars["Favorites"].waitForExistence(timeout: 8))
         XCTAssertTrue(app.buttons["miniplayer.stop"].isHittable)
-        capture(app, name: "Lineup style — compact controls and station clearance")
+        capture(app, name: "Graphite — compact controls and station clearance")
         app.buttons["miniplayer.stop"].tap()
         XCTAssertTrue(mini.waitForNonExistence(timeout: 8))
         XCTAssertTrue(last.isHittable)

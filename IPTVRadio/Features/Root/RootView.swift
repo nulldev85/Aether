@@ -41,13 +41,9 @@ struct RootView: View {
 struct LaunchLoadingView: View {
     var body: some View {
         VStack(spacing: 16) {
-            AetherIconTile(symbol: "dot.radiowaves.left.and.right", size: 56)
             Text("Aether")
                 .font(AetherTheme.displayFont)
                 .foregroundStyle(AetherTheme.primaryText)
-            Text("MAKE ROOM FOR SOUND").font(.radio(10, .heavy)).tracking(2)
-                .foregroundStyle(AetherTheme.accent)
-            AetherTuningRule().frame(maxWidth: 200)
             ProgressView()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

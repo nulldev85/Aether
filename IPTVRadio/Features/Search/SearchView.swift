@@ -11,7 +11,7 @@ struct SearchView: View {
                 AetherTheme.background.ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    RadioPageHeading(title: "Find your\nfrequency.", subtitle: "A station, a genre, a familiar voice.", eyebrow: "AETHER / SEARCH")
+                    RadioPageHeading(title: "Search", subtitle: "Search stations, genres and shows.")
                         .padding(.horizontal, 20)
                     searchField
                         .padding(.horizontal, 20)
@@ -73,15 +73,15 @@ struct SearchView: View {
         if query.count < 2 {
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
-                    AetherSectionLabel(title: "A place to start")
+                    AetherSectionLabel(title: "Browse by genre")
                     ForEach(["Rock", "Jazz", "News", "Country", "Talk"], id: \.self) { term in
                         Button {
                             library.searchQuery = term
                         } label: {
                             HStack {
-                                Text(term).font(.radio(.title3, .bold))
+                                Text(term).font(.radio(.body, .medium))
                                 Spacer()
-                                Image(systemName: "arrow.up.left").font(.radio(14, .medium))
+                                Image(systemName: "chevron.right").font(.radio(14, .medium))
                                     .foregroundStyle(AetherTheme.accent)
                             }
                             .foregroundStyle(AetherTheme.primaryText)

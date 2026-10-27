@@ -1,7 +1,7 @@
 ## What's new
 
-- A completely new dark look, with warm ivory text, copper details and a quieter, more focused layout.
-- A new studio-style navigation dock and refreshed mini player keep your stations and controls close at hand.
-- Cleaner station lists, redesigned Settings and a fresh look for Aether Dial and sign-in.
+- A minimal dark interface with dim graphite surfaces, soft gray text and neutral controls.
+- Simpler navigation and playback controls, without bright fills, tuning scales or decorative borders.
+- Compact headings and clearer layouts throughout Settings, Search, Aether Dial and sign-in.
 - Start a search with a genre shortcut, then explore the matching stations in your own lineup.
-- The rounded font and spinning vinyl are here to stay. Full-player controls remain at the bottom of the screen.
+- The rounded font and spinning vinyl are unchanged, and full-player controls stay at the bottom of the screen.

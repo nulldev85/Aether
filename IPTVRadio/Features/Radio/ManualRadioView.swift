@@ -27,7 +27,7 @@ struct ManualRadioView: View {
                     emptyState
                 } else {
                     List {
-                        RadioPageHeading(title: "Radio", subtitle: "A dial that's entirely yours.", eyebrow: "AETHER / YOUR AIRWAVES")
+                        RadioPageHeading(title: "Radio", subtitle: "Your saved stations.")
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
                             .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
@@ -154,7 +154,7 @@ struct ManualRadioView: View {
 
     private var emptyStationContent: some View {
         VStack(alignment: .leading, spacing: 14) {
-            RadioPageHeading(title: "Radio", subtitle: "A dial that's entirely yours.", eyebrow: "AETHER / YOUR AIRWAVES")
+            RadioPageHeading(title: "Radio", subtitle: "Your saved stations.")
             Text("Your Radio stations")
                 .font(.radio(20, .bold))
             Text("Add a stream link or find a station in Aether Dial. MP3, AAC, HLS, M3U and PLS links are supported.")
@@ -164,12 +164,8 @@ struct ManualRadioView: View {
             Button {
                 editor = EditorTarget()
             } label: {
-                VStack(alignment: .leading, spacing: 8) {
-                    Label("Add Station", systemImage: "plus").font(.radio(.headline))
-                    Text("Bring a stream you love.").font(.radio(.subheadline))
-                }
+                Label("Add Station", systemImage: "plus").font(.radio(.headline))
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 10)
             }
             .buttonStyle(AetherButtonStyle(prominent: true))
             .tint(AetherTheme.accent)
@@ -178,12 +174,8 @@ struct ManualRadioView: View {
             Button {
                 showDial = true
             } label: {
-                VStack(alignment: .leading, spacing: 8) {
-                    Label("Explore Aether Dial", systemImage: "safari").font(.radio(.headline))
-                    Text("Find a new corner of the airwaves.").font(.radio(.subheadline))
-                }
+                Label("Explore Aether Dial", systemImage: "safari").font(.radio(.headline))
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 10)
             }
             .buttonStyle(AetherButtonStyle())
             .tint(AetherTheme.accent)
@@ -230,7 +222,7 @@ private struct ManualStationEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
-                RadioPageHeading(title: entry == nil ? "Add a frequency." : "Make it yours.", subtitle: "A name, a stream, a place on your dial.", eyebrow: "AETHER / YOUR STATIONS")
+                RadioPageHeading(title: entry == nil ? "Add Station" : "Edit Station", subtitle: "Enter the station name and stream URL.")
                     .listRowBackground(Color.clear).listRowSeparator(.hidden)
                 Section {
                     TextField("Station name", text: $name)

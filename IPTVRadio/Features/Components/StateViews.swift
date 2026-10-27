@@ -73,7 +73,7 @@ struct ExpiredSessionStateView: View {
         VStack(alignment: .leading, spacing: 16) {
             Image(systemName: "clock.badge.exclamationmark")
                 .font(.radio(32))
-                .foregroundStyle(.orange)
+                .foregroundStyle(AetherTheme.warning)
                 .accessibilityHidden(true)
             Text("Session expired")
                 .font(.radio(.headline))
@@ -98,7 +98,7 @@ struct ErrorStateView: View {
         VStack(alignment: .leading, spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.radio(32))
-                .foregroundStyle(.orange)
+                .foregroundStyle(AetherTheme.warning)
                 .accessibilityHidden(true)
             Text("Something went wrong")
                 .font(.radio(.headline))

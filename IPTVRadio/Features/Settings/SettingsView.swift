@@ -25,7 +25,7 @@ struct SettingsView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 0) {
-                    RadioPageHeading(title: "Settings", subtitle: "The details. Just how you like them.", eyebrow: "AETHER / YOUR SETUP")
+                    RadioPageHeading(title: "Settings", subtitle: "Manage your account and preferences.")
                         .padding(.horizontal, 20)
                     categoryBar
                 }
@@ -103,14 +103,13 @@ struct SettingsView: View {
 
     private var appearanceSection: some View {
         settingsGroup("Appearance", systemImage: "paintbrush.pointed") {
-            AetherLabeledValue("Appearance", value: "After Hours")
+            AetherLabeledValue("Appearance", value: "Dark")
                 .aetherSettingsRow()
-            settingsFooter("Ink-dark surfaces, warm ivory type and a copper accent. Always dark, always Aether.")
             settingsDivider
             AetherSettingToggle("Liquid Glass navigation", isOn: $settings.liquidGlassEnabled)
                 .accessibilityIdentifier("settings.liquidGlass")
                 .aetherSettingsRow()
-            settingsFooter("Turn off for the solid studio dock. Liquid Glass is available on iOS 26 and later.")
+            settingsFooter("Turn off for solid navigation. Liquid Glass is available on iOS 26 and later.")
         }
     }
 
@@ -130,7 +129,7 @@ struct SettingsView: View {
             }
             if let warning = auth.insecureEndpointWarning {
                 Label(warning, systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(AetherTheme.warning)
                     .font(.radio(.footnote))
                     .aetherSettingsRow()
             }
@@ -400,7 +399,7 @@ struct DetectionRulesEditorView: View {
 
     var body: some View {
         Form {
-            RadioPageHeading(title: "Fine-tune\nyour lineup.", subtitle: "How your provider labels radio, in your own words.", eyebrow: "AETHER / DETECTION RULES")
+            RadioPageHeading(title: "Detection rules", subtitle: "Configure which provider channels appear as radio.")
                 .listRowBackground(Color.clear).listRowSeparator(.hidden)
             Section {
                 TextEditor(text: $siriusText)
@@ -504,7 +503,7 @@ struct PrivacyNoticeView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                RadioPageHeading(title: "Your listening.\nYour business.", subtitle: "Privacy & Authorization", eyebrow: "AETHER / PRIVACY")
+                RadioPageHeading(title: "Privacy & authorization", subtitle: "How Aether handles your data.")
 
                 Text("Authorization requirement")
                     .font(.radio(.headline))

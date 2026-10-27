@@ -1,4 +1,4 @@
-"""After Hours design and preserved-behavior checks; no live repository needed."""
+"""Minimal Graphite design and preserved-behavior checks; no live repository needed."""
 import ast
 import hashlib
 import json
@@ -8,7 +8,7 @@ import struct
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-REFERENCE = json.loads((ROOT / "docs/after-hours-style-reference.json").read_text(encoding="utf-8"))
+REFERENCE = json.loads((ROOT / "docs/graphite-style-reference.json").read_text(encoding="utf-8"))
 
 
 def luminance(value):
@@ -30,7 +30,7 @@ class RadioDesignTests(unittest.TestCase):
     def setUp(self):
         self.theme = source("IPTVRadio/App/AetherTheme.swift")
 
-    def test_exact_after_hours_palette_and_dimensions(self):
+    def test_exact_graphite_palette_and_dimensions(self):
         self.assertIn(REFERENCE["name"], self.theme)
         for name, color in REFERENCE["palette"].items():
             with self.subTest(color=name):
@@ -52,9 +52,9 @@ class RadioDesignTests(unittest.TestCase):
             self.assertNotIn("AetherInterface.", text)
             self.assertNotIn("design: .serif", text)
 
-    def test_body_and_quiet_text_have_readable_contrast_on_all_after_hours_surfaces(self):
-        for background in (0x0B0D0C, 0x161B18, 0x202822, 0x26312A):
-            for foreground in (0xF4F1EA, 0xB2B9B0, 0xCDD3C8, 0x9BA497):
+    def test_body_and_quiet_text_have_readable_contrast_on_all_graphite_surfaces(self):
+        for background in (0x101113, 0x181A1D, 0x1D2024, 0x292D33):
+            for foreground in (0xC7CBD1, 0xA2AAB5, 0xAEB6C1, 0x959DA8, 0xB28D92, 0xA69A88):
                 with self.subTest(background=background, foreground=foreground):
                     self.assertGreaterEqual(contrast(foreground, background), 4.5)
 
@@ -110,11 +110,27 @@ class RadioDesignTests(unittest.TestCase):
                     self.assertRegex(modifiers, r"\.font\(\.radio\(|\.radioField\(\)")
         self.assertGreaterEqual(count, 15)
 
-    def test_copper_labels_and_dark_on_copper_buttons_have_text_contrast(self):
-        for background in (0x0B0D0C, 0x161B18, 0x202822, 0x26312A):
-            self.assertGreaterEqual(contrast(0xEFA66A, background), 4.5)
-        self.assertIn("static let onAccent = canvas", self.theme)
-        self.assertGreaterEqual(contrast(0x0B0D0C, 0xEFA66A), 7)
+    def test_neutral_labels_and_dim_button_fills_have_text_contrast(self):
+        for background in (0x101113, 0x181A1D, 0x1D2024, 0x292D33):
+            self.assertGreaterEqual(contrast(0x9CA5B1, background), 4.5)
+        self.assertIn("static let onAccent = primaryText", self.theme)
+        self.assertGreaterEqual(contrast(0xC7CBD1, 0x292D33), 7)
+
+    def test_ui_is_dim_neutral_and_has_no_tuner_or_bright_control_fills(self):
+        for name, value in REFERENCE["palette"].items():
+            channels = [int(value[index:index + 2], 16) for index in (0, 2, 4)]
+            with self.subTest(color=name):
+                self.assertLessEqual(max(channels), 215)
+                self.assertLessEqual(max(channels) - min(channels), 24)
+        components = source("IPTVRadio/App/AetherComponents.swift")
+        self.assertNotIn("AetherTuningRule", components)
+        self.assertNotIn("eyebrow", components)
+        self.assertNotIn(".tracking(", components)
+        self.assertIn("prominent ? AetherTheme.selected : AetherTheme.surface", components)
+        for path in (ROOT / "IPTVRadio/Features").rglob("*.swift"):
+            text = path.read_text(encoding="utf-8")
+            self.assertNotIn("AetherTuningRule", text)
+            self.assertNotRegex(text, r"\.background\([^{}\n]*AetherTheme\.accent\b")
 
     def test_requested_rounded_font_implementation_is_preserved_exactly(self):
         font = self.theme.split("extension Font", 1)[1].split("enum AetherNavigationLayout", 1)[0]
@@ -152,7 +168,7 @@ class RadioDesignTests(unittest.TestCase):
             self.assertRegex(player, rf"static let {name}: CGFloat = {value}\b")
         self.assertNotIn(".ignoresSafeArea", body.split(".safeAreaInset", 1)[1].split(".foregroundStyle", 1)[0])
 
-    def test_icon_geometry_is_preserved_and_colors_match_after_hours(self):
+    def test_icon_geometry_is_preserved_and_colors_match_graphite(self):
         icon_source = source("scripts/generate-aether-icon.py")
         tree = ast.parse(icon_source)
         for node in ast.walk(tree):
@@ -160,17 +176,17 @@ class RadioDesignTests(unittest.TestCase):
                 node.value = "COLOR"
         self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
                          "a6f531875b98f7d03bf91d6703cbddf17898f007ceed1a59f3619aacda6d22f9")
-        self.assertIn('SPINDLE = "#EFA66A"', icon_source)
-        self.assertIn('FOREST = "#0B0D0C"', icon_source)
+        self.assertIn('SPINDLE = "#9CA5B1"', icon_source)
+        self.assertIn('FOREST = "#101113"', icon_source)
         data = (ROOT / "IPTVRadio/Assets.xcassets/AppIcon.appiconset/AppIcon.png").read_bytes()
         width, height, depth, mode = struct.unpack(">IIBB", data[16:26])
         self.assertEqual((width, height, depth, mode), (1024, 1024, 8, 2))
 
-    def test_navigation_uses_studio_rail_and_one_clearance_owner(self):
+    def test_minimal_navigation_has_one_clearance_owner(self):
         navigation = source("IPTVRadio/Features/Root/MainTabView.swift")
         self.assertIn("AetherNavigationLayout.reservedHeight(", navigation)
         self.assertIn('accessibilityIdentifier("aether.navigation.custom")', navigation)
-        self.assertIn("AetherStudioTabBar(selection:", navigation)
+        self.assertIn("AetherTabBar(selection:", navigation)
         self.assertIn("RoundedRectangle(cornerRadius: 12)", navigation)
         self.assertNotIn("in: Capsule()", navigation)
         self.assertIn(".tint(AetherTheme.accent)", navigation)
@@ -178,20 +194,19 @@ class RadioDesignTests(unittest.TestCase):
         self.assertNotIn("flatControlsClearance", source("IPTVRadio/Features/Settings/SettingsView.swift"))
         self.assertNotIn(".frame(height: 61 +", source("IPTVRadio/Features/Favorites/FavoritesTabView.swift"))
 
-    def test_system_accent_asset_matches_the_shared_copper(self):
+    def test_system_accent_asset_matches_the_shared_gray(self):
         asset = json.loads(source("IPTVRadio/Assets.xcassets/AccentColor.colorset/Contents.json"))
         for item in asset["colors"]:
             components = item["color"]["components"]
-            self.assertAlmostEqual(float(components["red"]), 0xEF / 255, places=5)
-            self.assertAlmostEqual(float(components["green"]), 0xA6 / 255, places=5)
-            self.assertAlmostEqual(float(components["blue"]), 0x6A / 255, places=5)
+            self.assertAlmostEqual(float(components["red"]), 0x9C / 255, places=5)
+            self.assertAlmostEqual(float(components["green"]), 0xA5 / 255, places=5)
+            self.assertAlmostEqual(float(components["blue"]), 0xB1 / 255, places=5)
 
     def test_every_destination_has_the_new_identity_without_dropping_features(self):
         components = source("IPTVRadio/App/AetherComponents.swift")
-        self.assertIn("AetherTuningRule()", components)
-        self.assertIn(".allowsHitTesting(false)", components)
+        self.assertIn(".font(.radio(.title2, .heavy))", components)
         settings = source("IPTVRadio/Features/Settings/SettingsView.swift")
-        self.assertIn('value: "After Hours"', settings)
+        self.assertIn('value: "Dark"', settings)
         self.assertNotIn('value: "Lineup"', settings)
         for control in ("cellular", "siriusOnly", "liquidGlass", "streamDiagnostics", "signOut"):
             self.assertIn(f'"settings.{control}"', settings)
@@ -203,7 +218,8 @@ class RadioDesignTests(unittest.TestCase):
         self.assertIn("ScrollView {\n            emptyStationContent", manual)
         for path in ("Auth/LoginView.swift", "Radio/ManualRadioView.swift", "Radio/RadioHomeView.swift",
                      "Favorites/FavoritesTabView.swift", "Search/SearchView.swift", "Radio/AetherDialView.swift"):
-            self.assertIn("eyebrow:", source("IPTVRadio/Features/" + path))
+            self.assertIn("RadioPageHeading(", source("IPTVRadio/Features/" + path))
+            self.assertNotIn("eyebrow:", source("IPTVRadio/Features/" + path))
 
     def test_release_notes_are_human_readable_and_published_with_source_metadata(self):
         notes = source("RELEASE_NOTES.md")

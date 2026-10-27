@@ -2,7 +2,7 @@ import SwiftUI
 import AVKit
 import MediaPlayer
 
-/// After-hours listening room around Aether's unchanged spinning disc.
+/// Minimal full player around Aether's unchanged spinning disc.
 struct NowPlayingView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
@@ -89,15 +89,13 @@ struct NowPlayingView: View {
         .padding(.vertical, NowPlayingLayout.controlVerticalPadding)
         .frame(maxWidth: 440)
         .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(AetherTheme.divider, lineWidth: 1))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("nowplaying.controls")
     }
 
     private var header: some View {
         HStack(spacing: 10) {
-            AetherIconTile(symbol: "dot.radiowaves.left.and.right")
-            Text("Now Playing").font(.radio(17, .heavy)).tracking(0.2)
+            Text("Now Playing").font(.radio(17, .heavy))
             Spacer()
             Button { dismiss() } label: {
                 Image(systemName: "chevron.down").frame(width: 16, height: 20)
@@ -113,11 +111,9 @@ struct NowPlayingView: View {
     private func trackDetails(for station: RadioStation) -> some View {
         VStack(spacing: 8) {
             HStack(spacing: 6) {
-                Rectangle().fill(playback.state.isPlaying ? AetherTheme.accent : AetherTheme.mutedIcon)
-                    .frame(width: 12, height: 3)
-                Text(status).font(.radio(11, .heavy)).tracking(1.8)
+                Text(status).font(.radio(11, .medium))
             }
-            .foregroundStyle(AetherTheme.accent)
+            .foregroundStyle(AetherTheme.secondaryText)
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("nowplaying.status")
 
@@ -150,11 +146,11 @@ struct NowPlayingView: View {
 
     private var status: String {
         switch playback.state {
-        case .playing: return "LIVE RADIO"
-        case .loading: return "CONNECTING"
-        case .paused: return "PAUSED"
-        case .failed: return "CONNECTION FAILED"
-        default: return "STOPPED"
+        case .playing: return "Live radio"
+        case .loading: return "Connecting"
+        case .paused: return "Paused"
+        case .failed: return "Connection failed"
+        default: return "Stopped"
         }
     }
 
@@ -163,7 +159,6 @@ struct NowPlayingView: View {
             Button { playback.previousStation() } label: {
                 Image(systemName: "backward.end.fill").font(.radio(22, .semibold))
                     .frame(width: NowPlayingLayout.skipButtonSize, height: NowPlayingLayout.skipButtonSize)
-                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(AetherTheme.divider, lineWidth: 1))
             }
             .accessibilityLabel("Previous station")
             .accessibilityIdentifier("nowplaying.previous")
@@ -179,7 +174,7 @@ struct NowPlayingView: View {
                 Image(systemName: mainButtonIcon).font(.radio(28, .semibold))
                     .frame(width: NowPlayingLayout.transportButtonSize, height: NowPlayingLayout.transportButtonSize)
                     .foregroundStyle(AetherTheme.onAccent)
-                    .background(AetherTheme.accent, in: RoundedRectangle(cornerRadius: 16))
+                    .background(AetherTheme.selected, in: Circle())
             }
             .accessibilityLabel(mainButtonLabel)
             .accessibilityIdentifier(mainButtonIsStop ? "nowplaying.stop" : "nowplaying.toggle")
@@ -187,7 +182,6 @@ struct NowPlayingView: View {
             Button { playback.nextStation() } label: {
                 Image(systemName: "forward.end.fill").font(.radio(22, .semibold))
                     .frame(width: NowPlayingLayout.skipButtonSize, height: NowPlayingLayout.skipButtonSize)
-                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(AetherTheme.divider, lineWidth: 1))
             }
             .accessibilityLabel("Next station")
             .accessibilityIdentifier("nowplaying.next")
@@ -323,7 +317,7 @@ struct SleepTimerSheet: View {
     var body: some View {
         NavigationStack {
             List {
-                AetherSectionLabel(title: "Sleep timer", detail: "Switch off, drift off.")
+                AetherSectionLabel(title: "Stop playback after")
                     .listRowBackground(Color.clear).listRowSeparator(.hidden)
                 Section {
                     ForEach(options, id: \.self) { minutes in

@@ -53,7 +53,7 @@ struct RadioHomeView: View {
         }
         return AnyView(
             List {
-                RadioPageHeading(title: "SiriusXM", subtitle: "Your world of sound, on the dial.", eyebrow: "AETHER / THE LINEUP")
+                RadioPageHeading(title: "SiriusXM", subtitle: "Channels from your provider.")
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))

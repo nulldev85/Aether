@@ -6,13 +6,13 @@ import SwiftUI
 
 @MainActor
 final class AetherStyleTests: XCTestCase {
-    func testAfterHoursPaletteIsIdenticalInBothSystemAppearances() {
+    func testGraphitePaletteIsIdenticalInBothSystemAppearances() {
         let expected: [(UIColor, UInt32)] = [
-            (AetherTheme.uiCanvas, 0x0B0D0C),
-            (AetherTheme.uiNavigationSurface, 0x161B18),
-            (AetherTheme.uiPrimaryText, 0xF4F1EA),
-            (AetherTheme.uiMutedIcon, 0x9BA497),
-            (AetherTheme.uiAccent, 0xEFA66A)
+            (AetherTheme.uiCanvas, 0x101113),
+            (AetherTheme.uiNavigationSurface, 0x181A1D),
+            (AetherTheme.uiPrimaryText, 0xC7CBD1),
+            (AetherTheme.uiMutedIcon, 0x959DA8),
+            (AetherTheme.uiAccent, 0x9CA5B1)
         ]
         for appearance in [UIUserInterfaceStyle.light, .dark] {
             for (color, hex) in expected {
@@ -38,7 +38,7 @@ final class AetherStyleTests: XCTestCase {
                 XCTAssertEqual(withPlayer - withoutPlayer, playerHeight + 8)
             }
         }
-        XCTAssertEqual(AetherTheme.panelRadius, 18)
+        XCTAssertEqual(AetherTheme.panelRadius, 12)
         XCTAssertEqual(AetherTheme.compactRadius, 10)
         XCTAssertEqual(AetherNavigationLayout.itemHeight, 54)
         XCTAssertEqual(AetherNavigationLayout.padding, 4)

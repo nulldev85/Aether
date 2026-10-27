@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// One persistent TabView for Aether's studio dock and optional native bar.
+/// One persistent TabView for the quiet solid dock and optional native bar.
 /// The audio session, selected station and vinyl do not depend on tab changes.
 struct MainTabView: View {
     @EnvironmentObject private var settings: SettingsStore
@@ -36,7 +36,7 @@ struct MainTabView: View {
                             MiniPlayerView(onOpen: { showNowPlaying = true })
                                 .frame(height: playerHeight)
                         }
-                        AetherStudioTabBar(selection: $selectedTab)
+                        AetherTabBar(selection: $selectedTab)
                     }
                     .padding(.bottom, AetherNavigationLayout.bottomGap(safeAreaBottom: proxy.safeAreaInsets.bottom))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
@@ -98,8 +98,8 @@ private enum AetherTab: Int, CaseIterable, Identifiable {
     }
 }
 
-/// A low studio rail with an active copper marker, not floating pill buttons.
-private struct AetherStudioTabBar: View {
+/// Minimal navigation with a subdued selected well, without accent markers.
+private struct AetherTabBar: View {
     @Binding var selection: AetherTab
     @ScaledMetric(relativeTo: .caption2) private var labelSize: CGFloat = 10
 
@@ -117,12 +117,9 @@ private struct AetherStudioTabBar: View {
                         Text(tab.title).font(.radio(labelSize, .semibold))
                             .lineLimit(1).minimumScaleFactor(0.75)
                     }
-                    .foregroundStyle(selected ? AetherTheme.accent : AetherTheme.mutedIcon)
+                    .foregroundStyle(selected ? AetherTheme.primaryText : AetherTheme.mutedIcon)
                     .frame(maxWidth: .infinity, minHeight: AetherNavigationLayout.itemHeight)
-                    .overlay(alignment: .top) {
-                        RoundedRectangle(cornerRadius: 1).fill(selected ? AetherTheme.accent : .clear)
-                            .frame(width: 20, height: 2)
-                    }
+                    .background(selected ? AetherTheme.selected : .clear, in: RoundedRectangle(cornerRadius: 8))
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(AetherNavigationButtonStyle())
@@ -134,7 +131,6 @@ private struct AetherStudioTabBar: View {
         }
         .padding(AetherNavigationLayout.padding)
         .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(AetherTheme.divider, lineWidth: 1).allowsHitTesting(false))
         .padding(.horizontal, AetherNavigationLayout.sideMargin)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Main navigation")

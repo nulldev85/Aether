@@ -63,7 +63,6 @@ struct StationRow: View {
                         .font(.radio(19, .medium))
                         .foregroundStyle(favorites.isFavorite(station) ? AetherTheme.accent : AetherTheme.mutedIcon)
                         .frame(width: 44, height: 44)
-                        .overlay(Circle().strokeBorder(AetherTheme.divider, lineWidth: 1))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(favorites.isFavorite(station) ? "Remove from favorites" : "Add to favorites")
@@ -112,7 +111,7 @@ struct StationRow: View {
         case .failed:
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.radio(.caption))
-                .foregroundStyle(.orange)
+                .foregroundStyle(AetherTheme.warning)
         default:
             EmptyView()
         }

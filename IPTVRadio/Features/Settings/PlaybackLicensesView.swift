@@ -19,7 +19,7 @@ struct PlaybackLicensesView: View {
 
     var body: some View {
         List {
-            RadioPageHeading(title: "Behind the sound.", subtitle: "The open-source work that makes Aether possible.", eyebrow: "AETHER / ACKNOWLEDGEMENTS")
+            RadioPageHeading(title: "Acknowledgements", subtitle: "Playback components and licenses.")
                 .listRowBackground(Color.clear).listRowSeparator(.hidden)
             Section {
                 Text("AetherEngine 7.38.1 and its decoder libraries")

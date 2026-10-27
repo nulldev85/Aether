@@ -27,7 +27,7 @@ struct LoginView: View {
                                     .font(.radio(.subheadline, .semibold))
                                     .frame(maxWidth: .infinity, minHeight: 46)
                                     .foregroundStyle(mode == option ? AetherTheme.onAccent : AetherTheme.secondaryText)
-                                    .background(mode == option ? AetherTheme.accent : AetherTheme.surface,
+                                    .background(mode == option ? AetherTheme.selected : AetherTheme.surface,
                                                 in: RoundedRectangle(cornerRadius: 10))
                             }
                             .buttonStyle(.plain)
@@ -45,7 +45,7 @@ struct LoginView: View {
                     if let warning = auth.insecureEndpointWarning {
                         Label(warning, systemImage: "exclamationmark.triangle.fill")
                             .font(.radio(.footnote))
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(AetherTheme.warning)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .accessibilityIdentifier("login.insecureWarning")
                     }
@@ -53,7 +53,7 @@ struct LoginView: View {
                     if let error = errorMessage {
                         Label(error, systemImage: "xmark.octagon.fill")
                             .font(.radio(.footnote))
-                            .foregroundStyle(.red)
+                            .foregroundStyle(AetherTheme.destructive)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .accessibilityIdentifier("login.error")
                     }
@@ -76,7 +76,7 @@ struct LoginView: View {
     }
 
     private var header: some View {
-        RadioPageHeading(title: "Good sound.\nYour station.", subtitle: "Welcome to Aether. Connect your provider and make yourself at home.", eyebrow: "AETHER / TUNE IN")
+        RadioPageHeading(title: "Sign In", subtitle: "Connect your radio provider.")
     }
 
     private var xtreamForm: some View {
