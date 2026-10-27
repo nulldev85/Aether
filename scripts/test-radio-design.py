@@ -1,5 +1,4 @@
 """Minimal Graphite design and preserved-behavior checks; no live repository needed."""
-import ast
 import hashlib
 import json
 from pathlib import Path
@@ -24,6 +23,15 @@ def contrast(first, second):
 
 def source(relative):
     return (ROOT / relative).read_text(encoding="utf-8")
+
+
+def icon_geometry_digest(text):
+    # Freeze the original drawing source, allowing only six-digit color edits.
+    # ast.dump is a debugging format whose empty-field output varies by Python
+    # version. Source hashing also keeps every coordinate and render option.
+    normalized = text.replace("\r\n", "\n")
+    normalized = re.sub(r'''(['"])#[0-9A-Fa-f]{6}\1''', r'\1COLOR\1', normalized)
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
 
 class RadioDesignTests(unittest.TestCase):
@@ -170,17 +178,27 @@ class RadioDesignTests(unittest.TestCase):
 
     def test_icon_geometry_is_preserved_and_colors_match_graphite(self):
         icon_source = source("scripts/generate-aether-icon.py")
-        tree = ast.parse(icon_source)
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Constant) and isinstance(node.value, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", node.value):
-                node.value = "COLOR"
-        self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
-                         "a6f531875b98f7d03bf91d6703cbddf17898f007ceed1a59f3619aacda6d22f9")
+        # Frozen from the original merged drawing at f403d74, not the failed
+        # runner's output. The current source matches after masking colors.
+        self.assertEqual(icon_geometry_digest(icon_source),
+                         "3dd3fa134d18d4bedb4366d1abf846492f55fb8155a54eb3faba252495fd88b8")
         self.assertIn('SPINDLE = "#9CA5B1"', icon_source)
         self.assertIn('FOREST = "#101113"', icon_source)
         data = (ROOT / "IPTVRadio/Assets.xcassets/AppIcon.appiconset/AppIcon.png").read_bytes()
         width, height, depth, mode = struct.unpack(">IIBB", data[16:26])
         self.assertEqual((width, height, depth, mode), (1024, 1024, 8, 2))
+
+    def test_icon_fingerprint_allows_recoloring_but_rejects_drawing_changes(self):
+        original = source("scripts/generate-aether-icon.py")
+        expected = icon_geometry_digest(original)
+        self.assertEqual(icon_geometry_digest(original.replace("\n", "\r\n")), expected)
+        self.assertEqual(icon_geometry_digest(original.replace('"#9CA5B1"', '"#123456"')), expected)
+        for before, after in (("SIDE = 1024", "SIDE = 1023"),
+                              ("(256, 270, 734, 748)", "(255, 270, 734, 748)"),
+                              ("radius=px(39)", "radius=px(38)")):
+            with self.subTest(change=before):
+                self.assertIn(before, original)
+                self.assertNotEqual(icon_geometry_digest(original.replace(before, after, 1)), expected)
 
     def test_minimal_navigation_has_one_clearance_owner(self):
         navigation = source("IPTVRadio/Features/Root/MainTabView.swift")

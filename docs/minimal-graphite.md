@@ -35,3 +35,26 @@ Validation: 17 offline design/preservation checks and 7 synthetic bundle checks
 passed. Official actionlint and diff checks passed. No Apple SDK is installed
 on this Windows machine: native Swift/UI/device validation remains pending.
 Dispatch one review build, return its link, and do not poll/watch it.
+
+## Credential-scan job repair
+
+The user reported the credential-scan job failed in run 40584423432 at
+98c3b7e. Its completed job 122472024829 was inspected: committed-secret and
+unsafe-logging checks passed, as did all seven bundle-verifier regressions.
+The sole failure was the icon-preservation test's hash of `ast.dump` output.
+Python versions format empty AST fields differently, so that debugging string
+is not a portable integrity contract.
+
+The test now fingerprints normalized drawing source with only quoted hex
+colors masked. The expected fingerprint was independently obtained from the
+original merged icon generator at f403d74; the current generator matches it.
+A regression accepts recoloring and Windows line endings while rejecting
+canvas-size, record-coordinate and corner-radius changes. No icon, app source,
+credential checks, playback code or SDK/UI assertions changed. The workflow
+step now correctly names Graphite rather than Lineup. The simulator job was
+not inspected again; its result is unconfirmed.
+
+Repair validation: 18 design/preservation checks and all seven bundle checks
+passed locally. Both credential-check scripts were run unchanged in Git Bash
+and passed; the existing Logger-declaration warning remains non-fatal. Official
+actionlint and diff checks passed. SDK/UI/device validation remains pending.
