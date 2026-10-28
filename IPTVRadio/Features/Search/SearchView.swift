@@ -113,7 +113,7 @@ struct SearchView: View {
             } else {
                 List {
                     ForEach(results) { station in
-                        StationRow(station: station)
+                        StationRow(station: station, playbackQueue: results)
                     }
                 }
                 .listStyle(.plain)

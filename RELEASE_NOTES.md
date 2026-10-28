@@ -1,5 +1,8 @@
 ## What's new
 
+- Previous and Next follow the list you started from, including your arranged Favorites order.
+- Tap Search or Settings again to return to your last station tab while playback continues.
+- Improved logo loading after temporary connection errors and when switching stations quickly.
 - A new layout built around simple navigation at the top and a full-width player at the bottom.
 - Radio and Favorites now show spacious station presets with transparent logos and numbered positions.
 - Settings has dedicated pages for your account, stations, playback and app preferences.

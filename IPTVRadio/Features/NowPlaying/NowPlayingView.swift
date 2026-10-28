@@ -23,7 +23,9 @@ struct NowPlayingView: View {
                         .task(id: station.id) {
                             stationLogo = nil
                             guard let url = station.logoURL else { return }
-                            stationLogo = await ArtworkCache.shared.image(for: url)
+                            let image = await ArtworkCache.shared.image(for: url)
+                            guard !Task.isCancelled else { return }
+                            stationLogo = image
                         }
                 } else {
                     EmptyStateView(title: "Nothing playing", message: "Pick a station to start listening.", systemImage: "music.note")

@@ -9,6 +9,9 @@ struct StationRow: View {
     @EnvironmentObject private var library: LibraryViewModel
     @EnvironmentObject private var manualStations: ManualStationStore
     let station: RadioStation
+    /// The displayed collection, in its current order. Never build a queue
+    /// from the stations the listener happened to play in previous sessions.
+    let playbackQueue: [RadioStation]
     var preset = false
     var position: Int?
 
@@ -97,8 +100,16 @@ struct StationRow: View {
     }
 
     private func play() {
-        let fresh = station.source == .manual ? displayedStation : library.freshStation(matching: station)
-        playback.play(fresh, in: nil)
+        // Resolve saved copies only when playback starts, including every
+        // queue entry so Next uses current URLs after an edit/provider refresh.
+        let manualByID = Dictionary(uniqueKeysWithValues: manualStations.entries.map { ($0.id, $0.station) })
+        func freshStation(_ candidate: RadioStation) -> RadioStation {
+            candidate.source == .manual
+                ? (manualByID[candidate.id] ?? candidate)
+                : library.freshStation(matching: candidate)
+        }
+        let fresh = freshStation(station)
+        playback.play(fresh, in: playbackQueue.map(freshStation))
         if let directoryID = fresh.directoryStationID {
             let service = AetherDialService(httpClient: environment.httpClient)
             Task { await service.registerClick(stationID: directoryID) }
@@ -144,6 +155,7 @@ struct StationArtwork: View {
             didFail = false
             guard let logoURL else { return }
             let loaded = await ArtworkCache.shared.image(for: logoURL)
+            guard !Task.isCancelled else { return }
             image = loaded
             didFail = loaded == nil
         }
@@ -159,31 +171,6 @@ struct StationArtwork: View {
     }
 }
 
-/// Artwork used while playing: shows the current song's artwork when the
-/// stream provides it, falling back to the channel logo otherwise.
-/// (Channel logos remain unchanged everywhere else in the app.)
-struct PlaybackArtwork: View {
-    let station: RadioStation
-    let songArtwork: UIImage?
-    var size: CGFloat = 52
-
-    var body: some View {
-        ZStack {
-            if let songArtwork {
-                Image(uiImage: songArtwork)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: size, height: size)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .accessibilityHidden(true)
-            } else {
-                StationArtwork(logoURL: station.logoURL, size: size)
-            }
-        }
-        .frame(width: size, height: size)
-    }
-}
-
 /// Tiny in-memory artwork cache to avoid refetching logos while scrolling.
 /// Channel logos are background-keyed once so they sit directly on the
 /// browsing canvas.
@@ -195,19 +182,29 @@ actor ArtworkCache {
         cache.totalCostLimit = 32 * 1024 * 1024
         return cache
     }()
-    private var failed: Set<URL> = []
+    private let http: any HTTPClient
+    private let retryDelay: TimeInterval
+    private let failureLimit: Int
+    private var failedUntil: [URL: Date] = [:]
     private var inFlight: [URL: Task<UIImage?, Never>] = [:]
+
+    init(http: any HTTPClient = URLSessionHTTPClient(), retryDelay: TimeInterval = 60, failureLimit: Int = 150) {
+        self.http = http
+        self.retryDelay = max(0, retryDelay)
+        self.failureLimit = max(1, failureLimit)
+    }
 
     func image(for url: URL) async -> UIImage? {
         if let image = cache.object(forKey: url as NSURL) { return image }
-        if failed.contains(url) { return nil }
+        if let retryAt = failedUntil[url], Date() < retryAt { return nil }
+        failedUntil[url] = nil
         if let existing = inFlight[url] { return await existing.value }
 
-        let request = Task<UIImage?, Never> {
+        let request = Task<UIImage?, Never> { [http] in
             do {
-                let (data, response) = try await URLSession.shared.data(from: url)
-                guard let http = response as? HTTPURLResponse,
-                      (200..<300).contains(http.statusCode),
+                let request = URLRequest(url: url, timeoutInterval: 12)
+                let (data, response) = try await http.data(for: request)
+                guard (200..<300).contains(response.statusCode),
                       let image = UIImage(data: data) else { return nil }
                 return LogoBackgroundKeyer.keyed(image)
             } catch {
@@ -221,7 +218,13 @@ actor ArtworkCache {
             let cost = image.cgImage.map { $0.bytesPerRow * $0.height } ?? 0
             cache.setObject(image, forKey: url as NSURL, cost: cost)
         } else {
-            failed.insert(url)
+            let now = Date()
+            failedUntil = failedUntil.filter { $0.value > now }
+            if failedUntil.count >= failureLimit,
+               let oldest = failedUntil.min(by: { $0.value < $1.value })?.key {
+                failedUntil[oldest] = nil
+            }
+            failedUntil[url] = now.addingTimeInterval(retryDelay)
         }
         return image
     }

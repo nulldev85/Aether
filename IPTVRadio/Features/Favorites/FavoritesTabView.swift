@@ -3,13 +3,12 @@ import SwiftUI
 /// Favorites tab: only the stations the user has starred, nothing else.
 struct FavoritesTabView: View {
     @EnvironmentObject private var favorites: FavoritesStore
-    @EnvironmentObject private var settings: SettingsStore
-    @EnvironmentObject private var playback: PlaybackEngine
     @State private var isReordering = false
 
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
+        let stations = favorites.favorites.map(\.station)
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
@@ -31,7 +30,7 @@ struct FavoritesTabView: View {
                                   alignment: .leading, spacing: 28) {
                             ForEach(favorites.favorites.enumerated().map { IndexedFavorite(index: $0.offset, entry: $0.element) }) { item in
                                 VStack(alignment: .leading, spacing: 8) {
-                                    StationRow(station: item.entry.station, preset: true, position: item.index + 1)
+                                    StationRow(station: item.entry.station, playbackQueue: stations, preset: true, position: item.index + 1)
                                     if isReordering {
                                         ReorderButtons(name: item.entry.station.name,
                                             canMoveUp: item.index > 0, canMoveDown: item.index < favorites.favorites.count - 1,

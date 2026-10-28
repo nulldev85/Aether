@@ -1,4 +1,4 @@
-# Aether workspace overhaul — 1.2.0 (7)
+# Aether workspace overhaul — 1.2.0 (8)
 
 Active design specification. The user asked for a completely different look
 and feel, minimal, sleek, professional and dim. The previous Graphite layout
@@ -174,3 +174,38 @@ All 21 local design/preservation checks, seven package checks, both original
 credential scripts, workflow lint and diff checks passed before dispatch. No
 Apple SDK is installed locally, so do not claim a successful SDK/UI/IPA build
 until the user reports the replacement result. Do not poll or watch its run.
+
+## Build 8: listening queues, utility toggle and cleanup
+
+The user confirmed build7 passed and the design looks good on their phone.
+Completed run40608507284 at953d9f8 was inspected once:307 unit tests,15 UI tests,
+credential scan and device IPA packaging all passed. Their device report exposed
+a coverage gap: the full-player UI scenario preloaded a queue, while real station
+rows called play with no list. The new regression starts through actual rows.
+
+Each StationRow now requires its displayed playback collection. Favorites and
+Radio supply saved order; SXM/directory and search supply their visible results.
+Saved station URLs are refreshed for the whole queue at selection time. Manual
+station resolution uses one dictionary, avoiding repeated scans. Next/Previous
+retain the engine's existing wraparound and remote-command behavior.
+
+The top-right Settings/Search utilities toggle back to the last Radio/SXM/
+Favorites tab. This interprets the user's "top-right menu" as the sliders icon;
+an optional clarification was requested while independent work continued.
+
+Removed two unreferenced UI types and four unused environment subscriptions.
+Logo failures now have a bounded150-entry cache and60-second retry backoff,
+instead of permanent session failures. Requests have12-second timeouts. Existing
+32MiB/150-image decoded cache and shared in-flight requests remain. Cancelled
+row/mini/full-player image loads cannot publish obsolete logos.
+
+Added four logo-cache SDK tests and two actual UI regressions: arranged three-
+station Favorites navigation/wraparound with search-queue replacement, and
+repeated utility opening/closing during playback. Existing15 UI scenarios remain.
+UI fixtures clear only mock favorites at launch so scenario order cannot leak
+between tests. No production favorites or storage format is cleared or changed.
+
+Full audit, measured build7 package sizes and follow-up limits:
+[Playback and size audit](playback-and-size-audit.md). Audio engine, all Playback
+sources, Core, package versions/traits, font helpers, spinning vinyl, icon and
+workflow gates remain unchanged. New SDK/UI checks require the next CI run.

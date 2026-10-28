@@ -2,6 +2,71 @@ import XCTest
 @testable import IPTVRadio
 
 final class ArtworkLookupServiceTests: XCTestCase {
+    private var logoData: Data {
+        Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==")!
+    }
+
+    func testLogoRequestsShareOneLoadAndCacheTheResult() async {
+        let counter = RequestCounter()
+        let data = logoData
+        let http = MockHTTP.client { request in
+            counter.increment()
+            XCTAssertEqual(request.timeoutInterval, 12)
+            return (200, data)
+        }
+        let cache = ArtworkCache(http: http)
+        let url = URL(string: "https://art.example/station.png")!
+        async let first = cache.image(for: url)
+        async let second = cache.image(for: url)
+        let images = await (first, second)
+        XCTAssertNotNil(images.0)
+        XCTAssertNotNil(images.1)
+        let cached = await cache.image(for: url)
+        XCTAssertNotNil(cached)
+        XCTAssertEqual(counter.value, 1)
+    }
+
+    func testLogoFailureBacksOffInsteadOfRepeatingRequests() async {
+        let counter = RequestCounter()
+        let cache = ArtworkCache(http: MockHTTP.client { _ in
+            counter.increment()
+            return (503, Data())
+        })
+        let url = URL(string: "https://art.example/offline.png")!
+        let first = await cache.image(for: url)
+        let second = await cache.image(for: url)
+        XCTAssertNil(first)
+        XCTAssertNil(second)
+        XCTAssertEqual(counter.value, 1)
+    }
+
+    func testLogoFailureCanRecoverAfterItsBackoffExpires() async {
+        let counter = RequestCounter()
+        let data = logoData
+        let cache = ArtworkCache(http: MockHTTP.client { _ in
+            counter.increment()
+            return counter.value == 1 ? (503, Data()) : (200, data)
+        }, retryDelay: 0)
+        let url = URL(string: "https://art.example/recovered.png")!
+        let first = await cache.image(for: url)
+        let second = await cache.image(for: url)
+        XCTAssertNil(first)
+        XCTAssertNotNil(second, "A temporary logo error must not last for the entire app session")
+        XCTAssertEqual(counter.value, 2)
+    }
+
+    func testLogoFailureCacheEvictsOldEntriesAtItsLimit() async {
+        let counter = RequestCounter()
+        let cache = ArtworkCache(http: MockHTTP.client { _ in
+            counter.increment()
+            return (404, Data())
+        }, failureLimit: 2)
+        for name in ["one", "two", "three", "one"] {
+            _ = await cache.image(for: URL(string: "https://art.example/\(name).png")!)
+        }
+        XCTAssertEqual(counter.value, 4, "The oldest failed URL must be evicted, keeping the failure cache bounded")
+    }
+
     func testReturnsArtworkDataAndUpscalesURL() async {
         let searchJSON = #"{"results":[{"artworkUrl100":"https://art.example/100x100bb.jpg"}]}"#
         let imageData = Data(base64Encoded:

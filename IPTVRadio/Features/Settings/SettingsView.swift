@@ -11,7 +11,6 @@ private enum SettingsCategory: String, CaseIterable, Identifiable {
 
 /// Settings: account, playback options, filtering rules, cache and privacy.
 struct SettingsView: View {
-    @EnvironmentObject private var environment: AppEnvironment
     @EnvironmentObject private var settings: SettingsStore
     @EnvironmentObject private var auth: AuthViewModel
     @EnvironmentObject private var library: LibraryViewModel

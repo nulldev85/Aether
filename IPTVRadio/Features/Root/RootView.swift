@@ -5,7 +5,6 @@ struct RootView: View {
     @EnvironmentObject private var environment: AppEnvironment
     @EnvironmentObject private var auth: AuthViewModel
     @EnvironmentObject private var library: LibraryViewModel
-    @EnvironmentObject private var playback: PlaybackEngine
 
     var body: some View {
         Group {

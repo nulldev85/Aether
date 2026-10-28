@@ -280,6 +280,62 @@ final class IPTVRadioUITests: XCTestCase {
         }
     }
 
+    func testPlayerArrowsFollowTheArrangedFavoritesListAndWrap() throws {
+        let app = launch(scenario: "UITestFavorites")
+        // Three favorites distinguish Previous from Next, and leave other
+        // provider channels outside this listening queue.
+        app.buttons["tab.sxm"].tap()
+        let add = app.buttons["station.favorite.SiriusXM PopRocks"]
+        XCTAssertTrue(add.waitForExistence(timeout: 8))
+        add.tap()
+        app.buttons["tab.favorites"].tap()
+        app.buttons["favorites.reorder"].tap()
+        app.buttons["reorder.up.SiriusXM Hits 1"].tap()
+        app.buttons["favorites.reorder"].tap()
+
+        // The visible order is now PopRocks, Hits 1, Octane.
+        let pop = app.buttons["station.row.SiriusXM PopRocks"]
+        let hits = app.buttons["station.row.SiriusXM Hits 1"]
+        let octane = app.buttons["station.row.SiriusXM Octane"]
+        XCTAssertTrue(hits.waitForExistence(timeout: 8))
+        XCTAssertTrue(pop.exists && octane.exists)
+        let ordered = [pop, hits, octane].sorted {
+            abs($0.frame.minY - $1.frame.minY) > 2
+                ? $0.frame.minY < $1.frame.minY : $0.frame.minX < $1.frame.minX
+        }
+        XCTAssertEqual(ordered.map(\.label), ["SiriusXM PopRocks", "SiriusXM Hits 1", "SiriusXM Octane"])
+        hits.tap()
+        app.buttons["miniplayer.open"].tap()
+        let player = nowPlayingScreen(app)
+        let station = player.staticTexts["nowplaying.station"]
+        XCTAssertTrue(station.waitForExistence(timeout: 8))
+        XCTAssertEqual(station.label, "SiriusXM Hits 1")
+        for expected in ["SiriusXM Octane", "SiriusXM PopRocks"] {
+            player.buttons["nowplaying.next"].tap()
+            XCTAssertEqual(station.label, expected, "Next must follow the arranged Favorites order and wrap")
+        }
+        for expected in ["SiriusXM Octane", "SiriusXM Hits 1"] {
+            player.buttons["nowplaying.previous"].tap()
+            XCTAssertEqual(station.label, expected, "Previous must follow Favorites rather than the provider lineup")
+        }
+        player.buttons["nowplaying.close"].tap()
+        XCTAssertTrue(player.waitForNonExistence(timeout: 8))
+
+        // A new listening list must replace the old queue, not append to it.
+        app.buttons["tab.search"].tap()
+        let jazzShortcut = app.buttons["search.suggestion.jazz"]
+        XCTAssertTrue(jazzShortcut.waitForExistence(timeout: 8))
+        jazzShortcut.tap()
+        let jazz = app.buttons["station.row.Jazz Cafe Radio"]
+        XCTAssertTrue(jazz.waitForExistence(timeout: 8))
+        jazz.tap()
+        app.buttons["miniplayer.open"].tap()
+        let searchPlayer = nowPlayingScreen(app)
+        searchPlayer.buttons["nowplaying.next"].tap()
+        XCTAssertEqual(searchPlayer.staticTexts["nowplaying.station"].label, "Jazz Cafe Radio",
+                       "A one-result search must not return to the Favorites queue")
+    }
+
     func testNowPlayingScreenShowsStateAndControls() throws {
         let app = launch(scenario: "UITestNowPlaying")
 
@@ -465,6 +521,27 @@ final class IPTVRadioUITests: XCTestCase {
         app.buttons["miniplayer.stop"].tap()
         XCTAssertTrue(mini.waitForNonExistence(timeout: 8))
         XCTAssertTrue(last.isHittable)
+    }
+
+    func testTopRightUtilitiesToggleBackToTheStationTabWithoutStoppingPlayback() throws {
+        let app = launch(scenario: "UITestNowPlaying")
+        app.buttons["tab.favorites"].tap()
+        XCTAssertTrue(app.staticTexts["page.title.Favorites"].waitForExistence(timeout: 8))
+        for utility in ["settings", "search", "settings"] {
+            app.buttons["tab.\(utility)"].tap()
+            let content = utility == "settings"
+                ? app.buttons["settings.category.account"] : app.textFields["search.field"]
+            XCTAssertTrue(content.waitForExistence(timeout: 8))
+            XCTAssertTrue(app.buttons["miniplayer.open"].isHittable)
+            app.buttons["tab.\(utility)"].tap()
+            XCTAssertTrue(app.staticTexts["page.title.Favorites"].waitForExistence(timeout: 8),
+                          "A second press must close the utility and return to the previous station tab")
+        }
+        app.buttons["tab.sxm"].tap()
+        app.buttons["tab.settings"].tap()
+        app.buttons["tab.settings"].tap()
+        XCTAssertTrue(app.buttons["station.row.SiriusXM Hits 1"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["miniplayer.open"].isHittable)
     }
 
     func testPresetFavoriteActionDoesNotStartPlayback() throws {

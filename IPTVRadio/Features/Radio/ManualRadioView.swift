@@ -26,6 +26,7 @@ struct ManualRadioView: View {
     }
 
     var body: some View {
+        let stations = manualStations.entries.map(\.station)
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
@@ -53,7 +54,7 @@ struct ManualRadioView: View {
                         LazyVGrid(columns: columns, alignment: .leading, spacing: 24) {
                             ForEach(manualStations.entries.enumerated().map { IndexedManualStation(index: $0.offset, entry: $0.element) }) { item in
                                 VStack(alignment: .leading, spacing: 8) {
-                                    StationRow(station: item.entry.station, preset: true, position: item.index + 1)
+                                    StationRow(station: item.entry.station, playbackQueue: stations, preset: true, position: item.index + 1)
                                     if isReordering {
                                         ReorderButtons(name: item.entry.name,
                                             canMoveUp: item.index > 0, canMoveDown: item.index < manualStations.entries.count - 1,

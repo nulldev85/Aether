@@ -31,7 +31,7 @@ struct RadioHomeView: View {
                             : "Adjust detection keywords in Settings if your provider labels stations differently.")
                         .frame(maxHeight: .infinity, alignment: .top)
                 } else {
-                    List(library.siriusStations) { StationRow(station: $0) }
+                    List(library.siriusStations) { StationRow(station: $0, playbackQueue: library.siriusStations) }
                         .listStyle(.plain).scrollContentBackground(.hidden)
                         .refreshable { await library.refresh() }
                 }
@@ -52,7 +52,7 @@ struct AllStationsView: View {
             AetherSectionLabel(title: "Channel directory", detail: "\(stations.count) stations")
                 .listRowBackground(Color.clear).listRowSeparator(.hidden)
             ForEach(stations) { station in
-                StationRow(station: station)
+                StationRow(station: station, playbackQueue: stations)
             }
         }
         .listStyle(.plain)

@@ -91,7 +91,9 @@ struct MiniPlayerView: View {
                 .task(id: station.id) {
                     stationLogo = nil
                     guard let url = station.logoURL else { return }
-                    stationLogo = await ArtworkCache.shared.image(for: url)
+                    let image = await ArtworkCache.shared.image(for: url)
+                    guard !Task.isCancelled else { return }
+                    stationLogo = image
                 }
             }
         }

@@ -7,6 +7,7 @@ struct MainTabView: View {
     @EnvironmentObject private var playback: PlaybackEngine
     @State private var showNowPlaying = false
     @State private var selectedTab: AetherTab = .radio
+    @State private var lastStationTab: AetherTab = .radio
 
     var body: some View {
         VStack(spacing: 0) {
@@ -80,13 +81,19 @@ struct MainTabView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(tab.title)
+        .accessibilityHint(selectedTab == tab ? "Returns to \(lastStationTab.title)" : "Opens \(tab.title)")
         .accessibilityAddTraits(selectedTab == tab ? [.isSelected] : [])
         .accessibilityIdentifier("tab.\(tab.title.lowercased())")
     }
 
     private func select(_ tab: AetherTab) {
         UISelectionFeedbackGenerator().selectionChanged()
-        selectedTab = tab
+        if tab == .settings || tab == .search {
+            selectedTab = selectedTab == tab ? lastStationTab : tab
+        } else {
+            lastStationTab = tab
+            selectedTab = tab
+        }
     }
 }
 

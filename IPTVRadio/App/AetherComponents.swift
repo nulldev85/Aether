@@ -92,16 +92,6 @@ struct AetherBarButtonStyle: ButtonStyle {
     }
 }
 
-struct AetherNavigationButtonStyle: ButtonStyle {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .opacity(configuration.isPressed ? 0.78 : 1)
-            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.96 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-    }
-}
-
 /// Explicit label fonts avoid the title-only control initializers choosing
 /// their own standard text style inside Forms and native toggle styles.
 struct AetherSettingToggle: View {

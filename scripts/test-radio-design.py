@@ -72,7 +72,7 @@ class RadioDesignTests(unittest.TestCase):
             modifiers = logo.split("stationText", 1)[0]
             self.assertNotIn(".background(", modifiers)
             self.assertNotIn(".overlay(", modifiers)
-        artwork = rows.split("struct StationArtwork: View", 1)[1].split("struct PlaybackArtwork:", 1)[0]
+        artwork = rows.split("struct StationArtwork: View", 1)[1].split("actor ArtworkCache", 1)[0]
         self.assertNotIn(".background(", artwork)
         self.assertNotIn(".fill(", artwork)
         self.assertIn(".aspectRatio(contentMode: .fit)", artwork)
