@@ -1,4 +1,4 @@
-# Aether playback and app-size review — 1.2.0 (8)
+# Aether playback and app-size review — 1.2.0 (9)
 
 Review baseline: passed build7, commit953d9f8433a6d3084f18ee3246f9f06a2cce6272.
 The user confirmed playback and the new design work on their phone. This review
@@ -118,3 +118,8 @@ Before dispatch, all21 local design/preservation checks and seven package tests
 passed, along with both unchanged credential scans, actionlint and diff checks.
 The new full CI suite contains311 unit tests and17 UI scenarios; those new
 native results are not yet known.
+
+Build8 compiled the app but stopped at a compiler type-check error in the new
+Favorites UI ordering expression, before any tests ran. Build9 makes its
+coordinate snapshots/comparator types explicit without changing the expected
+order, thresholds or navigation assertions. SDK results remain pending.

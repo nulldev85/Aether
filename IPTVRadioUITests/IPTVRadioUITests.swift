@@ -299,11 +299,20 @@ final class IPTVRadioUITests: XCTestCase {
         let octane = app.buttons["station.row.SiriusXM Octane"]
         XCTAssertTrue(hits.waitForExistence(timeout: 8))
         XCTAssertTrue(pop.exists && octane.exists)
-        let ordered = [pop, hits, octane].sorted {
-            abs($0.frame.minY - $1.frame.minY) > 2
-                ? $0.frame.minY < $1.frame.minY : $0.frame.minX < $1.frame.minX
+        // Snapshot coordinates once. Keep the comparator concrete so Swift
+        // does not infer overloaded arithmetic through XCUIElement queries.
+        let positions: [(name: String, frame: CGRect)] = [
+            (pop.label, pop.frame), (hits.label, hits.frame), (octane.label, octane.frame)
+        ]
+        let ordered: [(name: String, frame: CGRect)] = positions.sorted { left, right in
+            let verticalDistance: CGFloat = left.frame.minY - right.frame.minY
+            if abs(verticalDistance) > 2 {
+                return verticalDistance < 0
+            }
+            return left.frame.minX < right.frame.minX
         }
-        XCTAssertEqual(ordered.map(\.label), ["SiriusXM PopRocks", "SiriusXM Hits 1", "SiriusXM Octane"])
+        let names: [String] = ordered.map { position in position.name }
+        XCTAssertEqual(names, ["SiriusXM PopRocks", "SiriusXM Hits 1", "SiriusXM Octane"])
         hits.tap()
         app.buttons["miniplayer.open"].tap()
         let player = nowPlayingScreen(app)

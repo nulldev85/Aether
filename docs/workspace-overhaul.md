@@ -1,4 +1,4 @@
-# Aether workspace overhaul — 1.2.0 (8)
+# Aether workspace overhaul — 1.2.0 (9)
 
 Active design specification. The user asked for a completely different look
 and feel, minimal, sleek, professional and dim. The previous Graphite layout
@@ -209,3 +209,20 @@ Full audit, measured build7 package sizes and follow-up limits:
 [Playback and size audit](playback-and-size-audit.md). Audio engine, all Playback
 sources, Core, package versions/traits, font helpers, spinning vinyl, icon and
 workflow gates remain unchanged. New SDK/UI checks require the next CI run.
+
+## Build 9: Favorites test compilation
+
+The user reported40617226042 at845271e failed. Inspected completed jobs once
+and simulator job122582447890 log once. The application compiled; XCTest did
+not run because the new Favorites UI test failed to compile at lines302/306:
+Swift could not type-check the chained XCUIElement sorting expression, then
+could not infer the map key-path root. Device packaging was skipped.
+
+The test now snapshots labeled CGRect values into an explicitly typed array,
+compares a separately typed CGFloat distance with an ordinary if branch, and
+maps the known tuple name with an explicit closure. It retains the exact
+PopRocks/Hits1/Octane visible-order assertion,2-point row tolerance, both arrow
+directions, wraparound and search-queue replacement. Native queries are sampled
+once per station rather than repeatedly inside sorting. No app behavior,
+playback/cache/menu implementation or CI gate changed. All17 UI scenarios and
+311 unit tests remain pending execution on the replacement SDK run.
