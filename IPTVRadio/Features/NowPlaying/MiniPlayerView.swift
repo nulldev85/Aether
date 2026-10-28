@@ -14,7 +14,7 @@ struct MiniPlayerView: View {
     var body: some View {
         Group {
             if let station = playback.state.station {
-                HStack(spacing: 12) {
+                HStack(spacing: 8) {
                     Button {
                         onOpen()
                     } label: {
@@ -23,13 +23,13 @@ struct MiniPlayerView: View {
                                 artwork: playback.nowPlayingMetadata?.artworkImage ?? stationLogo,
                                 isSpinning: playback.state.isPlaying && scenePhase == .active && !reduceMotion
                             )
-                            .frame(width: 44, height: 44)
+                            .frame(width: 54, height: 54)
                             .clipShape(Circle())
                             .accessibilityHidden(true)
 
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: 3) {
                                 Text(playback.nowPlayingMetadata?.title ?? station.name)
-                                    .font(.radio(.subheadline, .semibold))
+                                    .font(.radio(.subheadline, .bold))
                                     .foregroundStyle(AetherTheme.primaryText)
                                     .lineLimit(1)
                                 Text(playback.nowPlayingMetadata?.artist ?? stateDescription)
@@ -40,10 +40,12 @@ struct MiniPlayerView: View {
 
                             Spacer(minLength: 4)
                         }
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("miniplayer.open")
                     .accessibilityLabel("Open now playing screen")
+                    .accessibilityValue("\(station.name), \(stateDescription)")
                     .accessibilityHint("Opens the full now playing controls")
 
                     if playback.state.isBusy {
@@ -56,9 +58,10 @@ struct MiniPlayerView: View {
                         playback.togglePlayPause()
                     } label: {
                         Image(systemName: iconName)
-                            .font(.radio(.title3))
+                            .font(.radio(18, .bold))
                             .frame(width: 44, height: 44)
-                            .background(AetherTheme.selected, in: Circle())
+                            .foregroundStyle(AetherTheme.onAccent)
+                            .contentShape(Rectangle())
                     }
                     .accessibilityLabel(toggleAccessibilityLabel)
                     .accessibilityIdentifier("miniplayer.toggle")
@@ -67,22 +70,30 @@ struct MiniPlayerView: View {
                         playback.stop()
                     } label: {
                         Image(systemName: "stop.fill")
-                            .font(.radio(.title3))
+                            .font(.radio(14, .semibold))
+                            .foregroundStyle(AetherTheme.mutedIcon)
                             .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
                     }
                     .accessibilityLabel("Stop")
                     .accessibilityIdentifier("miniplayer.stop")
                 }
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 24)
                 .padding(.vertical, 12)
                 .foregroundStyle(AetherTheme.primaryText)
-                .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: AetherTheme.panelRadius, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: AetherTheme.panelRadius, style: .continuous).strokeBorder(AetherTheme.divider, lineWidth: 0.5))
-                .padding(.horizontal, AetherTheme.margin)
+                .background(AetherTheme.canvas)
+                .overlay(alignment: .top) { AetherTheme.divider.frame(height: 0.5) }
+                // The shelf is a container, not an accessibility modifier
+                // forwarded onto each independently operable child button.
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Radio player")
+                .accessibilityIdentifier("aether.playback.shelf")
                 .task(id: station.id) {
                     stationLogo = nil
                     guard let url = station.logoURL else { return }
-                    stationLogo = await ArtworkCache.shared.image(for: url)
+                    let image = await ArtworkCache.shared.image(for: url)
+                    guard !Task.isCancelled else { return }
+                    stationLogo = image
                 }
             }
         }

@@ -1,82 +1,103 @@
 import SwiftUI
 
-/// One persistent TabView for both of Lineup's navigation appearances.
-/// The audio session, selected station and vinyl do not depend on tab changes.
+/// One persistent workspace. Navigation is at the top; playback has its own
+/// full-width bottom shelf. Tab identity never owns the audio session.
 struct MainTabView: View {
     @EnvironmentObject private var settings: SettingsStore
     @EnvironmentObject private var playback: PlaybackEngine
     @State private var showNowPlaying = false
     @State private var selectedTab: AetherTab = .radio
-    @ScaledMetric(relativeTo: .body) private var playerHeight: CGFloat = 68
-
-    private var nativeNavigation: Bool {
-        if #available(iOS 26.0, *) { return settings.liquidGlassEnabled }
-        return false
-    }
+    @State private var lastStationTab: AetherTab = .radio
 
     var body: some View {
-        GeometryReader { proxy in
+        VStack(spacing: 0) {
+            workspaceHeader
             TabView(selection: $selectedTab) {
-                tabContent(safeAreaBottom: proxy.safeAreaInsets.bottom) { ManualRadioView() }
-                    .tabItem { Label("Radio", systemImage: "waveform") }.tag(AetherTab.radio)
-                tabContent(safeAreaBottom: proxy.safeAreaInsets.bottom) { RadioHomeView() }
-                    .tabItem { Label("SXM", systemImage: "antenna.radiowaves.left.and.right") }.tag(AetherTab.sxm)
-                tabContent(safeAreaBottom: proxy.safeAreaInsets.bottom) { FavoritesTabView() }
-                    .tabItem { Label("Favorites", systemImage: "heart") }.tag(AetherTab.favorites)
-                tabContent(safeAreaBottom: proxy.safeAreaInsets.bottom) { SearchView() }
-                    .tabItem { Label("Search", systemImage: "magnifyingglass") }.tag(AetherTab.search)
-                tabContent(safeAreaBottom: proxy.safeAreaInsets.bottom) { SettingsView() }
-                    .tabItem { Label("Settings", systemImage: "gearshape") }.tag(AetherTab.settings)
+                ManualRadioView().tabItem { Text("Radio") }.tag(AetherTab.radio).toolbar(.hidden, for: .tabBar)
+                RadioHomeView().tabItem { Text("SXM") }.tag(AetherTab.sxm).toolbar(.hidden, for: .tabBar)
+                FavoritesTabView().tabItem { Text("Favorites") }.tag(AetherTab.favorites).toolbar(.hidden, for: .tabBar)
+                SearchView().tabItem { Text("Search") }.tag(AetherTab.search).toolbar(.hidden, for: .tabBar)
+                SettingsView().tabItem { Text("Settings") }.tag(AetherTab.settings).toolbar(.hidden, for: .tabBar)
             }
-            // Lineup keeps selected navigation icons white, not accent colored.
-            .tint(.white)
-            .overlay(alignment: .bottom) {
-                if !nativeNavigation {
-                    VStack(spacing: AetherNavigationLayout.playerGap) {
-                        if playback.state.station != nil {
-                            MiniPlayerView(onOpen: { showNowPlaying = true })
-                                .frame(height: playerHeight)
-                        }
-                        LineupRadioTabBar(selection: $selectedTab)
-                    }
-                    .padding(.bottom, AetherNavigationLayout.bottomGap(safeAreaBottom: proxy.safeAreaInsets.bottom))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                    .ignoresSafeArea(.container, edges: .bottom)
+            .toolbar(.hidden, for: .tabBar)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if playback.state.station != nil {
+                    MiniPlayerView(onOpen: { showNowPlaying = true })
                 }
             }
         }
-        .background(AetherTheme.background.ignoresSafeArea())
+        .background(AetherTheme.canvas.ignoresSafeArea())
+        .tint(AetherTheme.accent)
         .sheet(isPresented: $showNowPlaying) {
-            NowPlayingView().tint(AetherTheme.accent)
-                .presentationBackground(AetherTheme.background)
+            NowPlayingView().presentationBackground(AetherTheme.canvas)
         }
     }
 
-    @ViewBuilder
-    private func tabContent<Content: View>(safeAreaBottom: CGFloat, @ViewBuilder content: () -> Content) -> some View {
-        content()
-            .foregroundStyle(AetherTheme.primaryText)
-            .tint(AetherTheme.accent)
-            .toolbar(nativeNavigation ? .visible : .hidden, for: .tabBar)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if nativeNavigation {
-                    if playback.state.station != nil {
-                        MiniPlayerView(onOpen: { showNowPlaying = true })
-                            .frame(height: playerHeight).padding(.vertical, 8)
-                    }
-                } else {
-                    // One reservation per tab. Individual lists/settings do
-                    // not also add padding for the same floating controls.
-                    Color.clear.frame(height: AetherNavigationLayout.reservedHeight(
-                        hasPlayer: playback.state.station != nil,
-                        playerHeight: playerHeight, safeAreaBottom: safeAreaBottom))
-                        .accessibilityHidden(true)
-                }
+    private var workspaceHeader: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                Text("Aether").font(.radio(21, .heavy))
+                    .foregroundStyle(AetherTheme.primaryText)
+                Spacer(minLength: 12)
+                utility(.search, symbol: "magnifyingglass")
+                utility(.settings, symbol: "slider.horizontal.3")
             }
+            .padding(.horizontal, AetherNavigationLayout.sideMargin).padding(.top, 4)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 28) {
+                    ForEach([AetherTab.radio, .sxm, .favorites]) { tab in
+                        Button { select(tab) } label: {
+                            Text(tab.title).font(.radio(.subheadline, selectedTab == tab ? .bold : .medium))
+                                .foregroundStyle(selectedTab == tab ? AetherTheme.primaryText : AetherTheme.mutedIcon)
+                                .frame(minWidth: AetherNavigationLayout.minimumTarget, minHeight: AetherNavigationLayout.utilityTarget)
+                                .overlay(alignment: .bottom) {
+                                    if selectedTab == tab { AetherTheme.primaryText.frame(height: 1) }
+                                }
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(selectedTab == tab ? [.isSelected] : [])
+                        .accessibilityIdentifier("tab.\(tab.title.lowercased())")
+                    }
+                }
+                .padding(.horizontal, AetherNavigationLayout.sideMargin)
+            }
+            AetherTheme.divider.frame(height: 0.5)
+        }
+        .background {
+            if settings.liquidGlassEnabled {
+                Rectangle().fill(.ultraThinMaterial).overlay(AetherTheme.canvas.opacity(0.65))
+            } else { AetherTheme.canvas }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("aether.navigation.header")
+    }
+
+    private func utility(_ tab: AetherTab, symbol: String) -> some View {
+        Button { select(tab) } label: {
+            Image(systemName: symbol).font(.radio(19, .medium))
+                .foregroundStyle(selectedTab == tab ? AetherTheme.primaryText : AetherTheme.mutedIcon)
+                .frame(width: AetherNavigationLayout.utilityTarget, height: AetherNavigationLayout.utilityTarget).contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(tab.title)
+        .accessibilityHint(selectedTab == tab ? "Returns to \(lastStationTab.title)" : "Opens \(tab.title)")
+        .accessibilityAddTraits(selectedTab == tab ? [.isSelected] : [])
+        .accessibilityIdentifier("tab.\(tab.title.lowercased())")
+    }
+
+    private func select(_ tab: AetherTab) {
+        UISelectionFeedbackGenerator().selectionChanged()
+        if tab == .settings || tab == .search {
+            selectedTab = selectedTab == tab ? lastStationTab : tab
+        } else {
+            lastStationTab = tab
+            selectedTab = tab
+        }
     }
 }
 
-private enum AetherTab: Int, CaseIterable, Identifiable {
+private enum AetherTab: Int, Identifiable {
     case radio, sxm, favorites, search, settings
     var id: Int { rawValue }
     var title: String {
@@ -87,56 +108,5 @@ private enum AetherTab: Int, CaseIterable, Identifiable {
         case .search: "Search"
         case .settings: "Settings"
         }
-    }
-    var symbol: String {
-        switch self {
-        case .radio: "waveform"
-        case .sxm: "antenna.radiowaves.left.and.right"
-        case .favorites: "heart"
-        case .search: "magnifyingglass"
-        case .settings: "gearshape"
-        }
-    }
-}
-
-/// Matches MobileLineupNavigationBar's capsule, selected well, spacing,
-/// rounded labels and neutral icons. Destinations remain Aether's own.
-private struct LineupRadioTabBar: View {
-    @Binding var selection: AetherTab
-    @ScaledMetric(relativeTo: .caption2) private var labelSize: CGFloat = 10
-
-    var body: some View {
-        HStack(spacing: 0) {
-            ForEach(AetherTab.allCases) { tab in
-                let selected = selection == tab
-                Button {
-                    UISelectionFeedbackGenerator().selectionChanged()
-                    selection = tab
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: selected && tab == .favorites ? "heart.fill" : tab.symbol)
-                            .font(.radio(22, .semibold)).frame(width: 25, height: 24)
-                        Text(tab.title).font(.radio(labelSize, .semibold))
-                            .lineLimit(1).minimumScaleFactor(0.75)
-                    }
-                    .foregroundStyle(selected ? Color.white : AetherTheme.caption)
-                    .frame(maxWidth: .infinity, minHeight: AetherNavigationLayout.itemHeight)
-                    .background(selected ? AetherTheme.selected : .clear, in: Capsule())
-                    .contentShape(Capsule())
-                }
-                .buttonStyle(AetherNavigationButtonStyle())
-                .accessibilityLabel(tab.title)
-                .accessibilityAddTraits(selected ? [.isSelected] : [])
-                .accessibilityValue(selected ? "Selected" : "")
-                .accessibilityIdentifier("tab.\(tab.title.lowercased())")
-            }
-        }
-        .padding(AetherNavigationLayout.padding)
-        .background(AetherTheme.surface, in: Capsule())
-        .overlay(Capsule().strokeBorder(AetherTheme.divider, lineWidth: 1).allowsHitTesting(false))
-        .padding(.horizontal, AetherNavigationLayout.sideMargin)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Main navigation")
-        .accessibilityIdentifier("aether.navigation.custom")
     }
 }

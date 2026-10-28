@@ -11,7 +11,6 @@ private enum SettingsCategory: String, CaseIterable, Identifiable {
 
 /// Settings: account, playback options, filtering rules, cache and privacy.
 struct SettingsView: View {
-    @EnvironmentObject private var environment: AppEnvironment
     @EnvironmentObject private var settings: SettingsStore
     @EnvironmentObject private var auth: AuthViewModel
     @EnvironmentObject private var library: LibraryViewModel
@@ -19,96 +18,105 @@ struct SettingsView: View {
 
     @State private var confirmSignOut = false
     @State private var cacheCleared = false
-    @State private var selectedCategory: SettingsCategory = .account
-
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                VStack(alignment: .leading, spacing: 16) {
-                    RadioPageHeading(title: "Settings", subtitle: "Make Aether your own.")
-                        .padding(.horizontal, 20)
-                    categoryBar
-                }
-                .padding(.top, 12)
-
-                AetherTheme.border.opacity(0.65)
-                    .frame(height: 1)
-
-                ScrollView {
-                    VStack(alignment: .leading, spacing: AetherTheme.panelGap) {
-                        switch selectedCategory {
-                        case .account:
-                            accountSection
-                        case .stations:
-                            filteringSection
-                        case .playback:
-                            playbackSection
-                        case .app:
-                            appearanceSection
-                            cacheSection
-                            privacySection
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    RadioPageHeading(title: "Settings", subtitle: "Your account. Your preferences.")
+                    ForEach(SettingsCategory.allCases) { category in
+                        NavigationLink {
+                            categoryPage(category)
+                        } label: {
+                            HStack(spacing: 16) {
+                                Image(systemName: categorySymbol(category)).font(.radio(20, .regular))
+                                    .frame(width: 28).foregroundStyle(AetherTheme.mutedIcon)
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text(category.rawValue).font(.radio(.body, .semibold))
+                                    Text(categoryDescription(category)).font(.radio(.caption))
+                                        .foregroundStyle(AetherTheme.secondaryText)
+                                }
+                                Spacer(minLength: 8)
+                                Image(systemName: "chevron.right").font(.radio(12))
+                                    .foregroundStyle(AetherTheme.mutedIcon)
+                            }
+                            .frame(minHeight: 88).contentShape(Rectangle())
+                            .overlay(alignment: .bottom) { AetherTheme.divider.frame(height: 0.5) }
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("settings.category.\(category.rawValue.lowercased())")
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 22)
-                    .padding(.bottom, 32)
+                    Text(versionLabel)
+                        .font(.radio(.caption)).foregroundStyle(AetherTheme.mutedIcon).padding(.top, 32)
+                        .accessibilityIdentifier("settings.version")
                 }
-                .scrollIndicators(.hidden)
-                .id(selectedCategory)
+                .padding(.horizontal, 24).padding(.bottom, 32)
             }
-            .background(AetherTheme.background.ignoresSafeArea())
-            .toggleStyle(SwitchToggleStyle(tint: AetherTheme.accent))
+            .background(AetherTheme.canvas.ignoresSafeArea())
+            .navigationTitle("Settings")
             .toolbar(.hidden, for: .navigationBar)
-            .alert("Sign out?", isPresented: $confirmSignOut) {
-                Button("Sign Out", role: .destructive) {
-                    playback.stop()
-                    auth.signOut()
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Credentials are removed from the Keychain and cached data is cleared.")
-            }
+        }
+        .alert("Sign out?", isPresented: $confirmSignOut) {
+            Button("Sign Out", role: .destructive) { playback.stop(); auth.signOut() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Credentials are removed from the Keychain and cached data is cleared.")
         }
     }
 
-    private var categoryBar: some View {
-        HStack(spacing: 6) {
-            ForEach(SettingsCategory.allCases) { category in
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        selectedCategory = category
-                    }
-                } label: {
-                    Text(category.rawValue)
-                        .font(.radio(15, .bold))
-                        .lineLimit(1).minimumScaleFactor(0.75)
-                        .foregroundStyle(selectedCategory == category
-                            ? Color.white : AetherTheme.accent)
-                        .padding(.vertical, 11)
-                        .frame(maxWidth: .infinity)
-                        .background(selectedCategory == category ? AetherTheme.accent : .clear, in: Capsule())
-                        .overlay(Capsule().strokeBorder(selectedCategory == category ? Color.clear : AetherTheme.accent, lineWidth: 1.5))
-                        .contentShape(Capsule())
+    private func categoryPage(_ category: SettingsCategory) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 32) {
+                switch category {
+                case .account: accountSection
+                case .stations: filteringSection
+                case .playback: playbackSection
+                case .app:
+                    appearanceSection
+                    cacheSection
+                    privacySection
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("settings.category.\(category.rawValue.lowercased())")
-                .accessibilityValue(selectedCategory == category ? "Selected" : "")
             }
+            .padding(.horizontal, 24).padding(.top, 20).padding(.bottom, 32)
         }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 14)
+        .background(AetherTheme.canvas.ignoresSafeArea())
+        .navigationTitle(category.rawValue).navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
+    }
+
+    private var versionLabel: String {
+        let info = Bundle.main.infoDictionary ?? [:]
+        let version = info["CFBundleShortVersionString"] as? String ?? ""
+        let build = info["CFBundleVersion"] as? String ?? ""
+        return "Aether \(version) (\(build))"
+    }
+
+    private func categorySymbol(_ category: SettingsCategory) -> String {
+        switch category {
+        case .account: "person.crop.circle"
+        case .stations: "antenna.radiowaves.left.and.right"
+        case .playback: "waveform"
+        case .app: "slider.horizontal.3"
+        }
+    }
+
+    private func categoryDescription(_ category: SettingsCategory) -> String {
+        switch category {
+        case .account: "Subscription and sign-in"
+        case .stations: "Filtering and detection"
+        case .playback: "Streaming, metadata and output"
+        case .app: "Appearance, storage and privacy"
+        }
     }
 
     private var appearanceSection: some View {
         settingsGroup("Appearance", systemImage: "paintbrush.pointed") {
-            AetherLabeledValue("Appearance", value: "Lineup")
+            AetherLabeledValue("Appearance", value: "Dark")
                 .aetherSettingsRow()
-            settingsFooter("Lineup's charcoal panels, rounded type and broadcast-red accent throughout Aether.")
             settingsDivider
-            AetherSettingToggle("Liquid Glass navigation", isOn: $settings.liquidGlassEnabled)
+            AetherSettingToggle("Translucent navigation", isOn: $settings.liquidGlassEnabled)
                 .accessibilityIdentifier("settings.liquidGlass")
                 .aetherSettingsRow()
-            settingsFooter("Turn off for Lineup's compact floating navigation. Liquid Glass is available on iOS 26 and later.")
+            settingsFooter("Adds a subtle material to the top navigation. Turn off for a solid background.")
         }
     }
 
@@ -128,7 +136,7 @@ struct SettingsView: View {
             }
             if let warning = auth.insecureEndpointWarning {
                 Label(warning, systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(AetherTheme.warning)
                     .font(.radio(.footnote))
                     .aetherSettingsRow()
             }
@@ -311,15 +319,14 @@ struct SettingsView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             AetherPanelHeader(title: title, symbol: systemImage)
-            AetherTheme.divider.frame(height: 1).padding(.bottom, 16)
-            content()
-                .padding(.bottom, 18)
+            VStack(alignment: .leading, spacing: 0) {
+                content()
+            }
+            .padding(.vertical, 8)
         }
         .foregroundStyle(AetherTheme.primaryText)
         .tint(AetherTheme.accent)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, AetherTheme.panelInset)
-        .background(AetherTheme.surface, in: RoundedRectangle(cornerRadius: AetherTheme.panelRadius, style: .continuous))
     }
 
     private var settingsDivider: some View {
@@ -396,9 +403,13 @@ struct DetectionRulesEditorView: View {
 
     var body: some View {
         Form {
+            RadioPageHeading(title: "Detection rules", subtitle: "Configure which provider channels appear as radio.")
+                .listRowBackground(Color.clear).listRowSeparator(.hidden)
             Section {
                 TextEditor(text: $siriusText)
                     .font(.radio(.body))
+                    .scrollContentBackground(.hidden)
+                    .listRowBackground(AetherTheme.surface)
                     .frame(minHeight: 60)
                     .accessibilityLabel("Sirius keywords, one per line")
             } header: {
@@ -412,6 +423,8 @@ struct DetectionRulesEditorView: View {
             Section {
                 TextEditor(text: $radioGroupText)
                     .font(.radio(.body))
+                    .scrollContentBackground(.hidden)
+                    .listRowBackground(AetherTheme.surface)
                     .frame(minHeight: 80)
                     .accessibilityLabel("Radio group keywords, one per line")
             } header: {
@@ -425,6 +438,8 @@ struct DetectionRulesEditorView: View {
             Section {
                 TextEditor(text: $radioNameText)
                     .font(.radio(.body))
+                    .scrollContentBackground(.hidden)
+                    .listRowBackground(AetherTheme.surface)
                     .frame(minHeight: 100)
                     .accessibilityLabel("Radio name keywords, one per line")
             } header: {
@@ -438,6 +453,8 @@ struct DetectionRulesEditorView: View {
             Section {
                 TextEditor(text: $videoGroupText)
                     .font(.radio(.body))
+                    .scrollContentBackground(.hidden)
+                    .listRowBackground(AetherTheme.surface)
                     .frame(minHeight: 60)
                     .accessibilityLabel("Video group keywords, one per line")
             } header: {
@@ -490,12 +507,7 @@ struct PrivacyNoticeView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Image(systemName: "lock.shield")
-                    .font(.radio(40))
-                    .foregroundStyle(Color.accentColor)
-
-                Text("Privacy & Authorization")
-                    .font(.radio(.title2, .semibold))
+                RadioPageHeading(title: "Privacy & authorization", subtitle: "How Aether handles your data.")
 
                 Text("Authorization requirement")
                     .font(.radio(.headline))

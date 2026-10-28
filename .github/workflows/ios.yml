@@ -151,7 +151,7 @@ jobs:
       - name: Check device package verifier regressions
         run: python3 scripts/test-aether-build.py
 
-      - name: Check Lineup style and preserved vinyl/playback boundaries
+      - name: Check Graphite style and preserved vinyl/playback boundaries
         run: python3 scripts/test-radio-design.py
 
   # ---------------------------------------------------------------------------
@@ -339,6 +339,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Checkout release notes
+        uses: actions/checkout@v4
+
       - name: Download completed device IPA
         uses: actions/download-artifact@v4
         with:
@@ -354,8 +357,12 @@ jobs:
           import plistlib
           import sys
           import zipfile
+          from pathlib import Path
 
           ipa_path, notes_path = sys.argv[1:]
+          whats_new = Path("RELEASE_NOTES.md").read_text(encoding="utf-8").strip()
+          if not whats_new.startswith("## What's new") or "- " not in whats_new:
+              raise SystemExit("Write clear release notes before publishing this build")
           with zipfile.ZipFile(ipa_path) as archive:
               plist = plistlib.loads(archive.read("Payload/IPTVRadio.app/Info.plist"))
           fields = {
@@ -372,6 +379,7 @@ jobs:
           with open(notes_path, "w", encoding="utf-8") as notes:
               for key, value in fields.items():
                   notes.write(f"{key}: {value}\n")
+              notes.write("\n" + whats_new + "\n")
           PY
 
       - name: Publish public source release from main

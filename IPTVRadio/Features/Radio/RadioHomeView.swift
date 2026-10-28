@@ -7,62 +7,38 @@ struct RadioHomeView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if library.state == .loaded {
-                    stationList
-                } else {
-                    LibraryStateView(state: library.state) {
-                        Task { await library.refresh() }
-                    }
-                }
-            }
-            .navigationTitle("SXM")
-            .navigationBarTitleDisplayMode(.inline)
-            .background(AetherTheme.background.ignoresSafeArea())
-            .refreshable {
-                await library.refresh()
-            }
-            .toolbar {
-                if !library.siriusStations.isEmpty {
-                    ToolbarItem(placement: .topBarTrailing) {
+            VStack(spacing: 0) {
+                HStack {
+                    RadioPageHeading(title: "SiriusXM", subtitle: "\(library.siriusStations.count) channels from your provider")
+                    if !library.siriusStations.isEmpty {
                         NavigationLink {
                             AllStationsView(title: "SiriusXM Stations", stations: library.siriusStations)
                         } label: {
-                            Text("All \(library.siriusStations.count)")
-                                .font(.radio(.subheadline, .semibold))
+                            Image(systemName: "list.bullet").font(.radio(18))
+                                .frame(width: 44, height: 44).contentShape(Rectangle())
                         }
-                        .accessibilityIdentifier("radio.seeAll")
+                        .accessibilityLabel("All SiriusXM stations").accessibilityIdentifier("radio.seeAll")
                     }
                 }
-            }
-        }
-    }
-
-    private var stationList: some View {
-        let stations = library.siriusStations
-        if stations.isEmpty {
-            return AnyView(
-                EmptyStateView(
-                    title: "No SiriusXM-labelled stations",
-                    message: settings.siriusOnly
-                        ? "SiriusXM-only filtering is on. Turn it off in Settings to see all detected radio stations."
-                        : "No stations matched the SiriusXM rules. Adjust the keywords in Settings if your provider labels them differently.",
-                    systemImage: "antenna.radiowaves.left.and.right"
-                )
-            )
-        }
-        return AnyView(
-            List {
-                RadioPageHeading(title: "SiriusXM", subtitle: "\(stations.count) channels from your provider.")
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                ForEach(stations) { station in
-                    StationRow(station: station)
+                .padding(.horizontal, 24)
+                if library.state != .loaded {
+                    LibraryStateView(state: library.state) { Task { await library.refresh() } }
+                        .frame(maxHeight: .infinity, alignment: .top)
+                } else if library.siriusStations.isEmpty {
+                    EmptyStateView(title: "No SiriusXM-labelled stations",
+                        message: settings.siriusOnly
+                            ? "Turn off SiriusXM-only filtering in Settings to see other radio stations."
+                            : "Adjust detection keywords in Settings if your provider labels stations differently.")
+                        .frame(maxHeight: .infinity, alignment: .top)
+                } else {
+                    List(library.siriusStations) { StationRow(station: $0, playbackQueue: library.siriusStations) }
+                        .listStyle(.plain).scrollContentBackground(.hidden)
+                        .refreshable { await library.refresh() }
                 }
             }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-        )
+            .toolbar(.hidden, for: .navigationBar)
+            .background(AetherTheme.canvas.ignoresSafeArea())
+        }
     }
 }
 
@@ -73,8 +49,10 @@ struct AllStationsView: View {
 
     var body: some View {
         List {
+            AetherSectionLabel(title: "Channel directory", detail: "\(stations.count) stations")
+                .listRowBackground(Color.clear).listRowSeparator(.hidden)
             ForEach(stations) { station in
-                StationRow(station: station)
+                StationRow(station: station, playbackQueue: stations)
             }
         }
         .listStyle(.plain)
@@ -82,5 +60,6 @@ struct AllStationsView: View {
         .background(AetherTheme.canvas)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
     }
 }

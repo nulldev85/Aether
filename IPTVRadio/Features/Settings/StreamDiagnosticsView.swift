@@ -14,6 +14,8 @@ struct StreamDiagnosticsView: View {
 
     var body: some View {
         Form {
+            RadioPageHeading(title: "Stream diagnostics", subtitle: "Details about the current stream.")
+                .listRowBackground(Color.clear).listRowSeparator(.hidden)
             if let diagnostics = playback.streamDiagnostics {
                 AetherFormSection("Active stream") {
                     AetherLabeledValue("Station", value: diagnostics.stationName)
@@ -239,8 +241,8 @@ struct StreamDiagnosticsView: View {
 
     private func songOutcomeColor(_ outcome: SongSourceReport.Outcome) -> Color {
         switch outcome {
-        case .song: return .green
-        case .programme: return .orange
+        case .song: return AetherTheme.primaryText
+        case .programme: return AetherTheme.warning
         case .nothing: return .secondary
         }
     }
@@ -256,8 +258,8 @@ struct StreamDiagnosticsView: View {
 
     private func outcomeColor(_ outcome: StreamCandidateReport.Outcome) -> Color {
         switch outcome {
-        case .playing: return .green
-        case .failed: return .orange
+        case .playing: return AetherTheme.primaryText
+        case .failed: return AetherTheme.warning
         case .notTried, .skipped: return .secondary
         }
     }

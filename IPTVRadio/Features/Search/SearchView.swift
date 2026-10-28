@@ -11,11 +11,11 @@ struct SearchView: View {
                 AetherTheme.background.ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    RadioPageHeading(title: "Search", subtitle: "Find something worth listening to.")
-                        .padding(.horizontal, 20)
+                    RadioPageHeading(title: "Find a station", subtitle: "Search your stations and provider.")
+                        .padding(.horizontal, 24)
                     searchField
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 12)
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 24)
 
                     Group {
                         if library.state == .loaded || !manualStations.entries.isEmpty {
@@ -32,6 +32,7 @@ struct SearchView: View {
             .navigationTitle("Search")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar(.hidden, for: .navigationBar)
         }
         .background(AetherTheme.background.ignoresSafeArea())
     }
@@ -55,25 +56,49 @@ struct SearchView: View {
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(AetherTheme.mutedIcon)
+                        .frame(width: 44, height: 44)
                 }
                 .accessibilityLabel("Clear search")
             }
         }
         .font(.radio(.body))
-        .padding(.horizontal, 16)
-        .frame(height: 44)
-        .background(AetherTheme.surface, in: Capsule())
+        .frame(minHeight: 54)
+        .overlay(alignment: .bottom) { AetherTheme.primaryText.opacity(0.5).frame(height: 1) }
     }
 
     @ViewBuilder
     private var searchContent: some View {
         let query = library.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if query.count < 2 {
-            EmptyStateView(
-                title: "Search your stations",
-                message: "Type at least two characters to search by station name, genre, category or show metadata.",
-                systemImage: "magnifyingglass"
-            )
+            ScrollView {
+                VStack(alignment: .leading, spacing: 8) {
+                    AetherSectionLabel(title: "Browse by genre")
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 20)], spacing: 0) {
+                        ForEach(["Rock", "Jazz", "News", "Country", "Talk"], id: \.self) { term in
+                            Button {
+                                library.searchQuery = term
+                            } label: {
+                                HStack {
+                                    Text(term).font(.radio(.body, .medium))
+                                    Spacer()
+                                    Image(systemName: "arrow.up.right").font(.radio(14, .medium))
+                                        .foregroundStyle(AetherTheme.mutedIcon)
+                                }
+                                .foregroundStyle(AetherTheme.primaryText)
+                                .frame(minHeight: 64)
+                                .overlay(alignment: .bottom) { AetherTheme.divider.frame(height: 0.5) }
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("search.suggestion.\(term.lowercased())")
+                        }
+                    }
+                    Text("Search your provider's stations and the stations you've saved. Enter at least two characters.")
+                        .font(.radio(.footnote)).foregroundStyle(AetherTheme.secondaryText)
+                        .padding(.top, 12)
+                }
+                .padding(.horizontal, AetherTheme.margin)
+            }
         } else {
             let manualResults = manualStations.entries.lazy.map(\.station).filter {
                 $0.name.lowercased().contains(query) || $0.groupTitle.lowercased().contains(query)
@@ -88,7 +113,7 @@ struct SearchView: View {
             } else {
                 List {
                     ForEach(results) { station in
-                        StationRow(station: station)
+                        StationRow(station: station, playbackQueue: results)
                     }
                 }
                 .listStyle(.plain)

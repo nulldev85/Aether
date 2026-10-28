@@ -20,142 +20,98 @@ struct ManualRadioView: View {
         }
     }
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+    private var columns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 28), count: typeSize.isAccessibilitySize ? 1 : 2)
+    }
+
     var body: some View {
+        let stations = manualStations.entries.map(\.station)
         NavigationStack {
-            Group {
-                if manualStations.entries.isEmpty {
-                    emptyState
-                } else {
-                    List {
-                        RadioPageHeading(title: "Radio", subtitle: "\(manualStations.entries.count) stations. In your order.")
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                        ForEach(manualStations.entries.enumerated().map { IndexedManualStation(index: $0.offset, entry: $0.element) }) { item in
-                            let entry = item.entry
-                            HStack(spacing: 4) {
-                                StationRow(station: entry.station)
-                                if isReordering {
-                                    ReorderButtons(
-                                        name: entry.name,
-                                        canMoveUp: item.index > 0,
-                                        canMoveDown: item.index < manualStations.entries.count - 1,
-                                        moveUp: { manualStations.move(id: entry.id, by: -1) },
-                                        moveDown: { manualStations.move(id: entry.id, by: 1) }
-                                    )
-                                }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(alignment: .firstTextBaseline) {
+                        RadioPageHeading(title: "Your stations", subtitle: "Saved for everyday listening.")
+                        Menu {
+                            Button("Add station") { editor = EditorTarget() }
+                                .accessibilityIdentifier("manual.add")
+                            Button("Aether Dial") { showDial = true }
+                                .accessibilityIdentifier("manual.dial")
+                            if manualStations.entries.count > 1 || isReordering {
+                                Button(isReordering ? "Done reordering" : "Reorder stations") { isReordering.toggle() }
+                                    .accessibilityIdentifier("manual.reorder")
                             }
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                            .swipeActions(edge: .trailing) {
-                                Button("Delete", role: .destructive) { delete(entry) }
-                                    .font(.radio(.body, .medium))
-                                Button("Edit") { editor = EditorTarget(entry: entry) }
-                                    .font(.radio(.body, .medium))
-                                    .tint(AetherTheme.accent)
-                            }
-                            .contextMenu {
-                                Button {
-                                    editor = EditorTarget(entry: entry)
-                                } label: {
-                                    Label("Edit Station", systemImage: "pencil")
-                                        .font(.radio(.body, .medium))
-                                }
-                                Button(role: .destructive) {
-                                    delete(entry)
-                                } label: {
-                                    Label("Delete Station", systemImage: "trash")
-                                        .font(.radio(.body, .medium))
-                                }
-                            }
-                        }
-                    }
-                    .listStyle(.plain)
-                    .scrollContentBackground(.hidden)
-                }
-            }
-            .navigationTitle("Radio")
-            .navigationBarTitleDisplayMode(.inline)
-            .background(AetherTheme.background.ignoresSafeArea())
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        showDial = true
-                    } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: "safari")
-                            Text("Dial").font(.radio(.subheadline, .semibold))
-                        }
-                        .font(.radio(.subheadline, .semibold))
-                    }
-                    .accessibilityLabel("Aether Dial")
-                    .accessibilityIdentifier("manual.dial")
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    HStack {
-                        if manualStations.entries.count > 1 || isReordering {
-                            Button {
-                                isReordering.toggle()
-                            } label: {
-                                if isReordering {
-                                    Text("Done").font(.radio(.body, .semibold))
-                                } else {
-                                    Image(systemName: "arrow.up.arrow.down")
-                                        .foregroundStyle(AetherTheme.mutedIcon)
-                                }
-                            }
-                            .accessibilityLabel(isReordering ? "Done reordering" : "Reorder stations")
-                            .accessibilityIdentifier("manual.reorder")
-                        }
-                        Button {
-                            editor = EditorTarget()
                         } label: {
-                            Image(systemName: "plus")
-                                .foregroundStyle(AetherTheme.mutedIcon)
+                            Image(systemName: "plus").font(.radio(20, .medium))
+                                .frame(width: 44, height: 44).contentShape(Rectangle())
                         }
-                        .accessibilityLabel("Add station")
-                        .accessibilityIdentifier("manual.add")
+                        .accessibilityLabel("Manage stations")
+                        .accessibilityIdentifier("manual.manage")
+                    }
+                    if manualStations.entries.isEmpty {
+                        emptyStationContent
+                    } else {
+                        LazyVGrid(columns: columns, alignment: .leading, spacing: 24) {
+                            ForEach(manualStations.entries.enumerated().map { IndexedManualStation(index: $0.offset, entry: $0.element) }) { item in
+                                VStack(alignment: .leading, spacing: 8) {
+                                    StationRow(station: item.entry.station, playbackQueue: stations, preset: true, position: item.index + 1)
+                                    if isReordering {
+                                        ReorderButtons(name: item.entry.name,
+                                            canMoveUp: item.index > 0, canMoveDown: item.index < manualStations.entries.count - 1,
+                                            moveUp: { manualStations.move(id: item.entry.id, by: -1) },
+                                            moveDown: { manualStations.move(id: item.entry.id, by: 1) })
+                                    }
+                                    Menu {
+                                        Button("Edit Station") { editor = EditorTarget(entry: item.entry) }
+                                        Button("Delete Station", role: .destructive) { delete(item.entry) }
+                                    } label: {
+                                        HStack {
+                                            Text("Manage").font(.radio(.caption, .medium))
+                                            Spacer()
+                                            Image(systemName: "ellipsis")
+                                        }
+                                        .foregroundStyle(AetherTheme.mutedIcon)
+                                        .frame(minHeight: 44).contentShape(Rectangle())
+                                    }
+                                    .accessibilityLabel("Manage \(item.entry.name)")
+                                    .accessibilityIdentifier("manual.manage.\(item.entry.name)")
+                                }
+                            }
+                        }
                     }
                 }
+                .padding(.horizontal, 24).padding(.bottom, 28)
             }
+            .background(AetherTheme.canvas.ignoresSafeArea())
+            .toolbar(.hidden, for: .navigationBar)
             .sheet(item: $editor) { target in
                 ManualStationEditorView(entry: target.entry)
-                    .environmentObject(environment)
-                    .environmentObject(manualStations)
+                    .environmentObject(environment).environmentObject(manualStations)
             }
             .sheet(isPresented: $showDial) {
-                AetherDialView()
-                    .environmentObject(environment)
-                    .environmentObject(manualStations)
-                    .environmentObject(environment.playback)
+                AetherDialView().environmentObject(environment)
+                    .environmentObject(manualStations).environmentObject(environment.playback)
             }
             .alert("Couldn't update Radio", isPresented: Binding(
-                get: { errorMessage != nil },
-                set: { if !$0 { errorMessage = nil } }
-            )) {
-                Button("OK", role: .cancel) { errorMessage = nil }
-            } message: {
-                Text(errorMessage ?? "")
-            }
+                get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } }
+            )) { Button("OK", role: .cancel) { errorMessage = nil } }
+            message: { Text(errorMessage ?? "") }
         }
     }
 
-    private var emptyState: some View {
+    private var emptyStationContent: some View {
         VStack(alignment: .leading, spacing: 14) {
-            RadioPageHeading(title: "Radio", subtitle: "A place for your own stations.")
-            AetherIconTile(symbol: "antenna.radiowaves.left.and.right", size: 64)
             Text("Your Radio stations")
-                .font(.radio(20, .bold))
-            Text("Add a stream link or find a station in Aether Dial. MP3, AAC, HLS, M3U and PLS links are supported.")
+                .font(.radio(.headline, .bold))
+            Text("Start with a station you know, or discover one in Aether Dial.")
                 .font(.radio(.subheadline))
                 .foregroundStyle(AetherTheme.secondaryText)
                 .multilineTextAlignment(.leading)
             Button {
                 editor = EditorTarget()
             } label: {
-                Label("Add Station", systemImage: "plus")
-                    .font(.radio(.headline))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
+                Label("Add Station", systemImage: "plus").font(.radio(.headline))
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(AetherButtonStyle(prominent: true))
             .tint(AetherTheme.accent)
@@ -164,18 +120,13 @@ struct ManualRadioView: View {
             Button {
                 showDial = true
             } label: {
-                Label("Explore Aether Dial", systemImage: "safari")
-                    .font(.radio(.headline))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
+                Label("Explore Aether Dial", systemImage: "safari").font(.radio(.headline))
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(AetherButtonStyle())
             .tint(AetherTheme.accent)
             .accessibilityIdentifier("manual.dialEmpty")
         }
-        .padding(24)
-        .frame(maxWidth: 420, maxHeight: .infinity, alignment: .topLeading)
-        .frame(maxWidth: .infinity)
     }
 
     private func delete(_ entry: ManualStationEntry) {
@@ -216,60 +167,49 @@ private struct ManualStationEditorView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    TextField("Station name", text: $name)
-                        .font(.radio(.body))
-                        .textContentType(.name)
-                        .accessibilityIdentifier("manual.name")
-                    TextField("Stream URL", text: $streamURL)
-                        .font(.radio(.body))
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .accessibilityIdentifier("manual.url")
-                } header: {
-                    Text("Station")
-                        .font(.radio(.footnote, .semibold))
-                } footer: {
-                    Text("Use a direct MP3, AAC, AAC+, Ogg, Opus, FLAC or HLS (.m3u8) link, or an M3U/PLS station playlist. HTTP and HTTPS are supported.")
-                        .font(.radio(.footnote))
-                }
-                AetherFormSection("Optional") {
-                    TextField("Logo URL", text: $logoURL)
-                        .font(.radio(.body))
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .accessibilityIdentifier("manual.artwork")
-                    Text("We'll look for the station logo automatically. Paste a logo URL to choose your own.")
-                        .font(.radio(.caption))
-                        .foregroundStyle(AetherTheme.secondaryText)
-                }
-                if let errorMessage {
-                    Section {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    RadioPageHeading(title: "Station details", subtitle: "A name and a stream link are all you need.")
+                    VStack(alignment: .leading, spacing: 0) {
+                        TextField("Station name", text: $name)
+                            .radioField().textContentType(.name)
+                            .accessibilityIdentifier("manual.name")
+                        TextField("Stream URL", text: $streamURL)
+                            .radioField().keyboardType(.URL)
+                            .textInputAutocapitalization(.never).autocorrectionDisabled()
+                            .accessibilityIdentifier("manual.url")
+                    }
+                    Text("Direct MP3, AAC, Ogg, Opus, FLAC and HLS streams, or an M3U/PLS playlist. HTTP and HTTPS are supported.")
+                        .font(.radio(.footnote)).foregroundStyle(AetherTheme.secondaryText)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Artwork").font(.radio(.subheadline, .semibold))
+                        TextField("Logo URL (optional)", text: $logoURL)
+                            .radioField().keyboardType(.URL)
+                            .textInputAutocapitalization(.never).autocorrectionDisabled()
+                            .accessibilityIdentifier("manual.artwork")
+                        Text("Leave this empty to look for the station logo automatically.")
+                            .font(.radio(.footnote)).foregroundStyle(AetherTheme.secondaryText)
+                    }
+                    if let errorMessage {
                         Label(errorMessage, systemImage: "exclamationmark.circle")
-                            .font(.radio(.body))
-                            .foregroundStyle(AetherTheme.destructive)
+                            .font(.radio(.body)).foregroundStyle(AetherTheme.destructive)
                             .accessibilityIdentifier("manual.error")
                     }
                 }
+                .padding(.horizontal, 24).padding(.bottom, 28)
+                .frame(maxWidth: 560).frame(maxWidth: .infinity)
             }
-            .radioSettingsList()
+            .scrollDismissesKeyboard(.interactively)
+            .background(AetherTheme.canvas.ignoresSafeArea())
             .navigationTitle(entry == nil ? "Add Station" : "Edit Station")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") { dismiss() }
-                        .buttonStyle(AetherBarButtonStyle())
-                        .disabled(isSaving)
+                    Button("Cancel") { dismiss() }.buttonStyle(AetherBarButtonStyle()).disabled(isSaving)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Save") { save() }
-                        .buttonStyle(AetherBarButtonStyle(prominent: true))
-                        .fontWeight(.semibold)
-                        .disabled(isSaving)
-                        .accessibilityIdentifier("manual.save")
+                    Button("Save") { save() }.buttonStyle(AetherBarButtonStyle(prominent: true))
+                        .disabled(isSaving).accessibilityIdentifier("manual.save")
                 }
             }
         }

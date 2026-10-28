@@ -1,151 +1,122 @@
 import SwiftUI
 
-/// One station row with artwork, favorite toggle and live state.
+/// Directory rows and open station presets share playback actions, not layout.
+/// Favorite and play are sibling buttons, so each keeps its own touch target.
 struct StationRow: View {
     @EnvironmentObject private var environment: AppEnvironment
     @EnvironmentObject private var playback: PlaybackEngine
     @EnvironmentObject private var favorites: FavoritesStore
     @EnvironmentObject private var library: LibraryViewModel
     @EnvironmentObject private var manualStations: ManualStationStore
-
     let station: RadioStation
+    /// The displayed collection, in its current order. Never build a queue
+    /// from the stations the listener happened to play in previous sessions.
+    let playbackQueue: [RadioStation]
+    var preset = false
+    var position: Int?
 
     private var displayedStation: RadioStation {
         station.source == .manual ? (manualStations.station(id: station.id) ?? station) : station
     }
-
-    var isCurrent: Bool {
-        playback.state.station?.id == station.id
-    }
+    var isCurrent: Bool { playback.state.station?.id == station.id }
 
     var body: some View {
-        Button {
-            // Favorites and history may hold station copies saved by older
-            // app versions (with stale stream URLs). Always play the fresh
-            // library copy when one is available.
-            let fresh = station.source == .manual
-                ? displayedStation
-                : library.freshStation(matching: station)
-            playback.play(fresh, in: nil)
-            if let directoryID = fresh.directoryStationID {
-                let service = AetherDialService(httpClient: environment.httpClient)
-                Task { await service.registerClick(stationID: directoryID) }
-            }
-        } label: {
-            HStack(spacing: 14) {
-                StationArtwork(logoURL: displayedStation.logoURL, size: 54)
-                    .frame(width: 64, height: 64)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(station.name)
-                        .font(.radio(17, .medium))
-                        .foregroundStyle(AetherTheme.primaryText)
-                        .lineLimit(2)
-                    if !station.groupTitle.isEmpty {
-                        Text(station.groupTitle)
-                            .font(.radio(12, .medium))
-                            .tracking(0.15)
-                            .foregroundStyle(AetherTheme.secondaryText)
-                            .lineLimit(1)
+        VStack(alignment: .leading, spacing: 0) {
+            if preset {
+                HStack {
+                    Text(position.map { String(format: "%02d", $0) } ?? "")
+                        .font(.radio(.caption, .medium)).foregroundStyle(AetherTheme.mutedIcon)
+                    Spacer(minLength: 8)
+                    favoriteButton
+                }
+                Button(action: play) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        StationArtwork(logoURL: displayedStation.logoURL, size: 76)
+                            .frame(maxWidth: .infinity, minHeight: 88, alignment: .center)
+                        stationText
                     }
-                }
-
-                Spacer(minLength: 8)
-
-                if isCurrent {
-                    playbackStateBadge
-                }
-
-                Button {
-                    favorites.toggle(displayedStation)
-                } label: {
-                    Image(systemName: favorites.isFavorite(station) ? "star.fill" : "star")
-                        .font(.radio(19, .medium))
-                        .foregroundStyle(favorites.isFavorite(station) ? AetherTheme.accent : AetherTheme.mutedIcon)
-                        .frame(width: 44, height: 44)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.bottom, 20).contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(favorites.isFavorite(station) ? "Remove from favorites" : "Add to favorites")
-                .accessibilityIdentifier("station.favorite.\(station.name)")
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(isCurrent ? AetherTheme.selected : AetherTheme.surface,
-                        in: RoundedRectangle(cornerRadius: AetherTheme.compactRadius, style: .continuous))
-            .overlay(alignment: .leading) {
-                if isCurrent {
-                    Rectangle().fill(AetherTheme.accent)
-                        .frame(width: 2, height: 32)
+                .accessibilityIdentifier("station.row.\(station.name)")
+                .accessibilityLabel(station.name)
+                .accessibilityHint("Plays this station")
+                AetherTheme.divider.frame(height: 0.5)
+            } else {
+                HStack(spacing: 12) {
+                    Button(action: play) {
+                        HStack(spacing: 16) {
+                            StationArtwork(logoURL: displayedStation.logoURL, size: 36)
+                                .frame(width: 40, height: 44)
+                            stationText
+                            Spacer(minLength: 0)
+                            if isCurrent { stateIcon }
+                        }
+                        .frame(minHeight: 72).contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("station.row.\(station.name)")
+                    .accessibilityLabel(station.name)
+                    .accessibilityHint("Plays this station")
+                    favoriteButton
                 }
+                AetherTheme.divider.frame(height: 0.5)
             }
-            .contentShape(Rectangle())
+        }
+        .listRowBackground(Color.clear).listRowSeparator(.hidden)
+        .listRowInsets(EdgeInsets(top: 0, leading: 24, bottom: 0, trailing: 24))
+    }
+
+    private var stationText: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(station.name).font(.radio(.subheadline, .bold))
+                .foregroundStyle(AetherTheme.primaryText).lineLimit(2)
+            if isCurrent {
+                Label(playback.state.isPlaying ? "Playing" : "Selected", systemImage: "waveform")
+                    .font(.radio(.caption)).foregroundStyle(AetherTheme.caption)
+            } else if !station.groupTitle.isEmpty {
+                Text(station.groupTitle).font(.radio(.caption))
+                    .foregroundStyle(AetherTheme.secondaryText).lineLimit(1)
+            }
+        }
+    }
+
+    private var favoriteButton: some View {
+        Button { favorites.toggle(displayedStation) } label: {
+            Image(systemName: favorites.isFavorite(station) ? "star.fill" : "star")
+                .font(.radio(16, .regular)).foregroundStyle(AetherTheme.mutedIcon)
+                .frame(width: 44, height: 44).contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .listRowBackground(Color.clear)
-        .listRowSeparator(.hidden)
-        .listRowInsets(EdgeInsets(top: 7, leading: 20, bottom: 7, trailing: 20))
-        .accessibilityIdentifier("station.row.\(station.name)")
-        .accessibilityElement(children: .combine)
-        .accessibilityHint("Plays this station")
+        .accessibilityLabel(favorites.isFavorite(station) ? "Remove from favorites" : "Add to favorites")
+        .accessibilityIdentifier("station.favorite.\(station.name)")
     }
 
-    @ViewBuilder
-    private var playbackStateBadge: some View {
-        switch playback.state {
-        case .playing:
-            LiveActivityBadge()
-        case .paused:
-            HStack(spacing: 4) {
-                Image(systemName: "pause.fill")
-                    .font(.radio(.caption2))
-                Text("Paused")
-                    .font(.radio(.caption2, .semibold))
-            }
-            .foregroundStyle(AetherTheme.secondaryText)
-        case .loading:
-            ProgressView().controlSize(.small)
-        case .failed:
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.radio(.caption))
-                .foregroundStyle(.orange)
-        default:
-            EmptyView()
+    @ViewBuilder private var stateIcon: some View {
+        if playback.state.isBusy { ProgressView().controlSize(.small) }
+        else { Image(systemName: playback.state.isPlaying ? "waveform" : "pause.fill")
+            .foregroundStyle(AetherTheme.mutedIcon).font(.radio(.caption)) }
+    }
+
+    private func play() {
+        // Resolve saved copies only when playback starts, including every
+        // queue entry so Next uses current URLs after an edit/provider refresh.
+        let manualByID = Dictionary(uniqueKeysWithValues: manualStations.entries.map { ($0.id, $0.station) })
+        func freshStation(_ candidate: RadioStation) -> RadioStation {
+            candidate.source == .manual
+                ? (manualByID[candidate.id] ?? candidate)
+                : library.freshStation(matching: candidate)
+        }
+        let fresh = freshStation(station)
+        playback.play(fresh, in: playbackQueue.map(freshStation))
+        if let directoryID = fresh.directoryStationID {
+            let service = AetherDialService(httpClient: environment.httpClient)
+            Task { await service.registerClick(stationID: directoryID) }
         }
     }
 }
 
-/// A restrained, continuously moving five-band signal for the active row.
-/// TimelineView only runs while this one row is playing, and respects the
-/// system's Reduce Motion setting.
-private struct LiveActivityBadge: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: reduceMotion)) { context in
-            HStack(alignment: .center, spacing: 2) {
-                ForEach(0..<5, id: \.self) { index in
-                    Capsule()
-                        .fill(AetherTheme.accent)
-                        .frame(width: 3, height: barHeight(index, at: context.date))
-                }
-            }
-            .frame(width: 23, height: 18)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Playing live")
-    }
-
-    private func barHeight(_ index: Int, at date: Date) -> CGFloat {
-        let peaks: [CGFloat] = [10, 14, 17, 14, 10]
-        guard !reduceMotion else { return peaks[index] }
-        let cycle = date.timeIntervalSinceReferenceDate * (2 * Double.pi / 2.4)
-        // A single peak travels across the bars and eases into each reversal.
-        let center = 2 + 1.6 * sin(cycle)
-        let distance = Double(index) - center
-        let level = exp(-0.8 * distance * distance)
-        return 4 + (peaks[index] - 4) * CGFloat(0.2 + 0.8 * level)
-    }
-}
 
 /// A station's channel logo.
 ///
@@ -184,6 +155,7 @@ struct StationArtwork: View {
             didFail = false
             guard let logoURL else { return }
             let loaded = await ArtworkCache.shared.image(for: logoURL)
+            guard !Task.isCancelled else { return }
             image = loaded
             didFail = loaded == nil
         }
@@ -199,31 +171,6 @@ struct StationArtwork: View {
     }
 }
 
-/// Artwork used while playing: shows the current song's artwork when the
-/// stream provides it, falling back to the channel logo otherwise.
-/// (Channel logos remain unchanged everywhere else in the app.)
-struct PlaybackArtwork: View {
-    let station: RadioStation
-    let songArtwork: UIImage?
-    var size: CGFloat = 52
-
-    var body: some View {
-        ZStack {
-            if let songArtwork {
-                Image(uiImage: songArtwork)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: size, height: size)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .accessibilityHidden(true)
-            } else {
-                StationArtwork(logoURL: station.logoURL, size: size)
-            }
-        }
-        .frame(width: size, height: size)
-    }
-}
-
 /// Tiny in-memory artwork cache to avoid refetching logos while scrolling.
 /// Channel logos are background-keyed once so they sit directly on the
 /// browsing canvas.
@@ -235,19 +182,29 @@ actor ArtworkCache {
         cache.totalCostLimit = 32 * 1024 * 1024
         return cache
     }()
-    private var failed: Set<URL> = []
+    private let http: any HTTPClient
+    private let retryDelay: TimeInterval
+    private let failureLimit: Int
+    private var failedUntil: [URL: Date] = [:]
     private var inFlight: [URL: Task<UIImage?, Never>] = [:]
+
+    init(http: any HTTPClient = URLSessionHTTPClient(), retryDelay: TimeInterval = 60, failureLimit: Int = 150) {
+        self.http = http
+        self.retryDelay = max(0, retryDelay)
+        self.failureLimit = max(1, failureLimit)
+    }
 
     func image(for url: URL) async -> UIImage? {
         if let image = cache.object(forKey: url as NSURL) { return image }
-        if failed.contains(url) { return nil }
+        if let retryAt = failedUntil[url], Date() < retryAt { return nil }
+        failedUntil[url] = nil
         if let existing = inFlight[url] { return await existing.value }
 
-        let request = Task<UIImage?, Never> {
+        let request = Task<UIImage?, Never> { [http] in
             do {
-                let (data, response) = try await URLSession.shared.data(from: url)
-                guard let http = response as? HTTPURLResponse,
-                      (200..<300).contains(http.statusCode),
+                let request = URLRequest(url: url, timeoutInterval: 12)
+                let (data, response) = try await http.data(for: request)
+                guard (200..<300).contains(response.statusCode),
                       let image = UIImage(data: data) else { return nil }
                 return LogoBackgroundKeyer.keyed(image)
             } catch {
@@ -261,7 +218,13 @@ actor ArtworkCache {
             let cost = image.cgImage.map { $0.bytesPerRow * $0.height } ?? 0
             cache.setObject(image, forKey: url as NSURL, cost: cost)
         } else {
-            failed.insert(url)
+            let now = Date()
+            failedUntil = failedUntil.filter { $0.value > now }
+            if failedUntil.count >= failureLimit,
+               let oldest = failedUntil.min(by: { $0.value < $1.value })?.key {
+                failedUntil[oldest] = nil
+            }
+            failedUntil[url] = now.addingTimeInterval(retryDelay)
         }
         return image
     }

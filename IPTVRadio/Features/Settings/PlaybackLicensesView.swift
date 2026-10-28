@@ -19,6 +19,8 @@ struct PlaybackLicensesView: View {
 
     var body: some View {
         List {
+            RadioPageHeading(title: "Acknowledgements", subtitle: "Playback components and licenses.")
+                .listRowBackground(Color.clear).listRowSeparator(.hidden)
             Section {
                 Text("AetherEngine 7.38.1 and its decoder libraries")
                     .font(.radio(.body))
@@ -35,6 +37,7 @@ struct PlaybackLicensesView: View {
                         Text(entry.text).font(.radio(.footnote)).textSelection(.enabled)
                             .frame(maxWidth: .infinity, alignment: .leading).padding()
                     }
+                    .background(AetherTheme.background.ignoresSafeArea())
                     .navigationTitle(entry.name)
                     .navigationBarTitleDisplayMode(.inline)
                 } label: {

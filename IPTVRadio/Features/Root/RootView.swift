@@ -5,7 +5,6 @@ struct RootView: View {
     @EnvironmentObject private var environment: AppEnvironment
     @EnvironmentObject private var auth: AuthViewModel
     @EnvironmentObject private var library: LibraryViewModel
-    @EnvironmentObject private var playback: PlaybackEngine
 
     var body: some View {
         Group {
@@ -43,7 +42,7 @@ struct LaunchLoadingView: View {
         VStack(spacing: 16) {
             Text("Aether")
                 .font(AetherTheme.displayFont)
-                .foregroundStyle(AetherTheme.accent)
+                .foregroundStyle(AetherTheme.primaryText)
             ProgressView()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
